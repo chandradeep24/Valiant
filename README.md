@@ -4,7 +4,7 @@ Experiments on random graphs
 
 ### Instructions
 
-1. Install python@3.9 or higher
+1. Install python@3.9 or higher with pip (recommended)
 2. Create a virtual environment: `python3 -m venv venv`
 3. Activate the environment: `source venv/bin/activate`
 4. Install the required packages: `pip install -r requirements.txt`
