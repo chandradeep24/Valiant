@@ -13,13 +13,39 @@ gt.seed_rng(42)
 """TODO: refactor the notebook functions into this class"""
 
 
+N = 500
+D = 128
+T = 1
+k = 16
+k_adj = 1.55
+P = D / (N - 1)
+
+H = 100
+STOP = 0.25
+START_MEM = 100
+r_expected = 40
+
+
+# _ indicates private function
+# public functions should return self
+
+
 class Neuroidal:
-    def __init__(self):
-        pass
+    def __init__(self, N, D, T, k, k_adj, H, STOP, START_MEM, r_exp):
+        self.N = N
+        self.D = D
+        self.T = T
+        self.k = k
+        self.k_adj = k_adj
+        self.H = H
+        self.STOP = STOP
+        self.START_MEM = START_MEM
+        self.r_exp = r_exp
+        self.P = D / (N - 1)
 
     # Create the graph with the properties
     def create(self):
-        pass
+        return self
 
     # Check and fire
     def _check_and_fire(self):
@@ -31,4 +57,4 @@ class Neuroidal:
 
     # JOIN function
     def JOIN_one_step_shared(self):
-        pass
+        return self
