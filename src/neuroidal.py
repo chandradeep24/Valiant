@@ -32,10 +32,6 @@ class Neuroidal:
         self.START_MEM = START_MEM
         self.r_exp = r_exp
         self.P = D / (N - 1)
-        self.total_inters = 0
-        self.ind = 0
-        self.inst_inters = 0
-        self.inst_len = 0
 
     # Create the graph with the properties
     def create(self):
