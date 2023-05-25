@@ -13,20 +13,6 @@ gt.seed_rng(42)
 
 """TODO: refactor the notebook functions into this class"""
 
-
-N = 500
-D = 128
-T = 1
-k = 16
-k_adj = 1.55
-P = D / (N - 1)
-
-H = 100
-STOP = 0.25
-START_MEM = 100
-r_expected = 40
-
-
 # _ indicates private function
 # public functions should return self
 
@@ -54,9 +40,9 @@ class Neuroidal:
     # Create the graph with the properties
     def create(self):
         self.g = gt.Graph()
-        self.g.add_vertex(N)
+        self.g.add_vertex(self.N)
 
-        self.num_edges = P * comb(N, 2)
+        self.num_edges = self.P * comb(self.N, 2)
         gt.add_random_edges(self.g, self.num_edges, parallel=False, self_loops=False)
 
         gt.random_rewire(
@@ -73,13 +59,13 @@ class Neuroidal:
         vprop_memories.a = 0
         vprop_fired_now.a = 0
         vprop_weight.a = 0.0
-        vprop_threshold.a = T
+        vprop_threshold.a = self.T
 
         eprop_fired = self.g.new_edge_property("int")
         eprop_weight = self.g.new_edge_property("double")
 
         eprop_fired.a = 0
-        eprop_weight.a = T / (k_adj * k)
+        eprop_weight.a = self.T / (self.k_adj * self.k)
 
         return self
 
@@ -87,7 +73,7 @@ class Neuroidal:
         self.memory_bank = []
         for i in np.arange(0, self.START_MEM):
             memory_A = np.random.default_rng().choice(
-                np.arange(0, self.N - 1), size=r_expected
+                np.arange(0, self.N - 1), size=self.r_expected
             )
             self.memory_bank.append(memory_A)
 
