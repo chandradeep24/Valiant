@@ -10,13 +10,10 @@ np.random.seed(42)
 gt.seed_rng(42)
 
 
-"""TODO: refactor the notebook functions into this class"""
+"""TODO: fix issues and add more comments"""
 
 # _ indicates private function
-# public functions should return self
-
-
-# Add more comments
+# public functions should return self to be composable
 
 
 class NeuroidalModel:
