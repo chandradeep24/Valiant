@@ -10,7 +10,6 @@ Fork the repo before cloning. Submit pull requests to have your changes merged.
 2. Start a terminal in the Valiant directory
 3. Create a virtual environment: `conda env create -f environment.yml`
 4. To install new packages:
-    * `conda activate gt`
     * `conda install -n gt <packagename>`
     * Add them the YAML using `conda env export > environment.yml`
 5. Refresh the kernel list and select the `gt` kernel in the notebook.
