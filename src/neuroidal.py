@@ -30,17 +30,41 @@ class NeuroidalModel:
         self.P = D / (N - 1)
 
     # Create the graph with the properties
+    # def create_graph(self):
+    #     self.g = gt.Graph()
+    #     self.g.add_vertex(self.N)
+
+    #     # Generating far less edges now
+    #     self.num_edges = self.P * comb(self.N, 2)
+    #     gt.add_random_edges(self.g, self.num_edges, parallel=False, self_loops=False)
+
+    #     gt.random_rewire(
+    #         self.g, model="erdos", parallel_edges=False, self_loops=False, verbose=False
+    #     )
+
+    #     self.vprop_fired = self.g.new_vertex_property("int")
+    #     self.vprop_memories = self.g.new_vertex_property("int")
+    #     self.vprop_fired_now = self.g.new_vertex_property("int")
+    #     self.vprop_weight = self.g.new_vertex_property("double")
+    #     self.vprop_threshold = self.g.new_vertex_property("double")
+
+    #     self.vprop_fired.a = 0
+    #     self.vprop_memories.a = 0
+    #     self.vprop_fired_now.a = 0
+    #     self.vprop_weight.a = 0.0
+    #     self.vprop_threshold.a = self.T
+
+    #     self.eprop_fired = self.g.new_edge_property("int")
+    #     self.eprop_weight = self.g.new_edge_property("double")
+
+    #     self.eprop_fired.a = 0
+    #     self.eprop_weight.a = self.T / (self.k_adj * self.k)
+
+    #     return self
+
     def create_graph(self):
         self.g = gt.Graph()
         self.g.add_vertex(self.N)
-
-        # Generating far less edges now
-        self.num_edges = self.P * comb(self.N, 2)
-        gt.add_random_edges(self.g, self.num_edges, parallel=False, self_loops=False)
-
-        gt.random_rewire(
-            self.g, model="erdos", parallel_edges=False, self_loops=False, verbose=False
-        )
 
         self.vprop_fired = self.g.new_vertex_property("int")
         self.vprop_memories = self.g.new_vertex_property("int")
@@ -54,6 +78,24 @@ class NeuroidalModel:
         self.vprop_weight.a = 0.0
         self.vprop_threshold.a = self.T
 
+        x, y = np.meshgrid(np.arange(self.N), np.arange(self.N))  # sparse=True)
+        mask = x != y
+        x = x[mask]
+        y = y[mask]
+        pairs = np.stack((x, y), axis=1)
+        print("Number of all possible edges:", pairs.shape[0])
+
+        z = np.random.default_rng().geometric(
+            p=self.P, size=((self.N * self.N) - self.N)
+        )
+        num_edges = (z == 1).sum()
+
+        index = np.random.default_rng().choice(
+            pairs.shape[0], size=int(num_edges), replace=False
+        )
+
+        self.g.add_edge_list(pairs[index])
+
         self.eprop_fired = self.g.new_edge_property("int")
         self.eprop_weight = self.g.new_edge_property("double")
 
@@ -63,7 +105,8 @@ class NeuroidalModel:
         return self
 
     def _generate_adj_mat(self):
-        self.adjmat = gt.adjacency(self.g)
+        self.adjmat = gt.adjacency(self.g, self.eprop_weight)
+        # print(self.adjmat)
         return self
 
     def generate_memory_bank(self):
@@ -87,73 +130,70 @@ class NeuroidalModel:
         return sum
 
     # Vectorized JOIN function
-    # JOIN function
-    # def _JOIN_one_step_shared(self, i, j):
-    #     self._generate_adj_mat()
-
-    #     memory_A = self.memory_bank[i]
-    #     memory_B = self.memory_bank[j]
-
-    #     state = np.zeros(self.adjmat.shape[0])
-    #     state[memory_A] = 1
-    #     state[memory_B] = 1
-
-    #     fired = np.heaviside((self.adjmat @ state) - 1, 1)
-
-    #     # This needs to be changed to comparizon with threshold
-    #     memory_C = np.nonzero(fired)[0]
-
-    #     print(type(memory_C))
-
-    #     inter = self._interference_check(i, j, memory_C)
-    #     self.memory_bank.append(memory_C)
-
-    #     return inter, len(memory_C)
-
-    def _check_and_fire_and_add(self, v, memory_C):
-        sum = 0
-        for s, t in self.g.iter_in_edges(v):
-            if self.vprop_fired_now[s] > 0:
-                sum += self.eprop_weight[self.g.edge(s, t)]
-        if sum > self.vprop_threshold[v]:
-            self.vprop_fired[v] += 1
-            memory_C.append(v)
-
     def _JOIN_one_step_shared(self, i, j):
-        """
-        Choose two random groups of neurons to become A and B
-        Basing this on the expected value of r from Valiant (2005)
-        Set A, then B to fire
-        Trace C from the firing nodes outward from A and B
-        Check for interference
-        """
+        self._generate_adj_mat()
 
         memory_A = self.memory_bank[i]
         memory_B = self.memory_bank[j]
 
-        # Fire A
-        for v in memory_A:
-            self.vprop_fired_now[v] = 1
-            self.vprop_fired[v] += 1
-            self.vprop_memories[v] += 1
+        state = np.zeros(self.adjmat.shape[0])
+        state[memory_A] = 1
+        state[memory_B] = 1
 
-        # Fire B
-        for v in memory_B:
-            self.vprop_fired_now[v] = 1
-            self.vprop_fired[v] += 1
-            self.vprop_memories[v] += 1
+        fired = np.heaviside((self.adjmat @ state) - 1, 1)
 
-        memory_C = []
-        # Check and fire adjacent nodes:
-        for v in self.g.iter_vertices():
-            self._check_and_fire_and_add(v, memory_C)
+        memory_C = np.nonzero(fired)[0]
 
+        # print((self.adjmat @ state) - 1, fired, memory_C)
         inter = self._interference_check(i, j, memory_C)
-        self.vprop_fired.a = 0
-        self.vprop_fired_now.a = 0
         self.memory_bank.append(memory_C)
 
         return inter, len(memory_C)
+
+    # def _check_and_fire_and_add(self, v, memory_C):
+    #     sum = 0
+    #     for s, t in self.g.iter_in_edges(v):
+    #         if self.vprop_fired_now[s] > 0:
+    #             sum += self.eprop_weight[self.g.edge(s, t)]
+    #     if sum > self.vprop_threshold[v]:
+    #         self.vprop_fired[v] += 1
+    #         memory_C.append(v)
+
+    # def _JOIN_one_step_shared(self, i, j):
+    #     """
+    #     Choose two random groups of neurons to become A and B
+    #     Basing this on the expected value of r from Valiant (2005)
+    #     Set A, then B to fire
+    #     Trace C from the firing nodes outward from A and B
+    #     Check for interference
+    #     """
+
+    #     memory_A = self.memory_bank[i]
+    #     memory_B = self.memory_bank[j]
+
+    #     # Fire A
+    #     for v in memory_A:
+    #         self.vprop_fired_now[v] = 1
+    #         self.vprop_fired[v] += 1
+    #         self.vprop_memories[v] += 1
+
+    #     # Fire B
+    #     for v in memory_B:
+    #         self.vprop_fired_now[v] = 1
+    #         self.vprop_fired[v] += 1
+    #         self.vprop_memories[v] += 1
+
+    #     memory_C = []
+    #     # Check and fire adjacent nodes:
+    #     for v in self.g.iter_vertices():
+    #         self._check_and_fire_and_add(v, memory_C)
+
+    #     inter = self._interference_check(i, j, memory_C)
+    #     self.vprop_fired.a = 0
+    #     self.vprop_fired_now.a = 0
+    #     self.memory_bank.append(memory_C)
+
+    #     return inter, len(memory_C)
 
     def simulate(self):
         i, j = np.meshgrid(
