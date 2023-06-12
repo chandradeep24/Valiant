@@ -17,7 +17,7 @@ gt.seed_rng(42)
 
 
 class NeuroidalModel:
-    def __init__(self, N, D, T, k, k_adj, H, STOP, START_MEM, r_exp):
+    def __init__(self, N, D, T, k, k_adj, H, STOP, START_MEM, r_exp, F=2):
         self.N = N
         self.D = D
         self.T = T
@@ -28,6 +28,7 @@ class NeuroidalModel:
         self.START_MEM = START_MEM
         self.r_exp = r_exp
         self.P = D / (N - 1)
+        self.F = F
 
     # Create the graph with the properties
     # def create_graph(self):
@@ -125,7 +126,7 @@ class NeuroidalModel:
             if i != A_index and i != B_index:
                 # print(type(C), type(i))
                 inter = list(set(C) & set(self.memory_bank[i]))
-                if len(inter) > len(self.memory_bank[i]) / 2:
+                if len(inter) > len(self.memory_bank[i]) / self.F:
                     sum += 2
         return sum
 
