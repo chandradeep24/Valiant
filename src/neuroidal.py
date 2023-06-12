@@ -221,16 +221,16 @@ class NeuroidalModel:
             if ind % self.H == 0:
                 print("Memories: ", len(self.memory_bank))
                 print("Instantaneous interference rate: ", inst_inters / self.H)
-                print(
-                    "Average interference rate: ", total_inters / len(self.memory_bank)
-                )
+                # print(
+                #     "Average interference rate: ", total_inters / len(self.memory_bank)
+                # )
                 print("Average size of memories created: ", inst_len / self.H, "\n\n")
                 inst_inters = 0
                 inst_len = 0
             if inter_flag > 0:
                 total_inters += inter_flag
                 inst_inters += inter_flag
-                if total_inters / len(self.memory_bank) > self.STOP:
+                if inst_inters / self.H > self.STOP:  # Changed this
                     print(
                         "Config: N=",
                         self.N,
@@ -250,7 +250,7 @@ class NeuroidalModel:
                         len(self.memory_bank),
                         " memories due to more than ",
                         self.STOP * 100,
-                        "percent total interference",
+                        "instantaneous total interference",
                     )
                     print("Instantaneous interference rate: ", inst_inters / self.H)
                     print(
