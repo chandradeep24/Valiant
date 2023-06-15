@@ -151,51 +151,6 @@ class NeuroidalModel:
 
         return inter, len(memory_C)
 
-    # def _check_and_fire_and_add(self, v, memory_C):
-    #     sum = 0
-    #     for s, t in self.g.iter_in_edges(v):
-    #         if self.vprop_fired_now[s] > 0:
-    #             sum += self.eprop_weight[self.g.edge(s, t)]
-    #     if sum > self.vprop_threshold[v]:
-    #         self.vprop_fired[v] += 1
-    #         memory_C.append(v)
-
-    # def _JOIN_one_step_shared(self, i, j):
-    #     """
-    #     Choose two random groups of neurons to become A and B
-    #     Basing this on the expected value of r from Valiant (2005)
-    #     Set A, then B to fire
-    #     Trace C from the firing nodes outward from A and B
-    #     Check for interference
-    #     """
-
-    #     memory_A = self.memory_bank[i]
-    #     memory_B = self.memory_bank[j]
-
-    #     # Fire A
-    #     for v in memory_A:
-    #         self.vprop_fired_now[v] = 1
-    #         self.vprop_fired[v] += 1
-    #         self.vprop_memories[v] += 1
-
-    #     # Fire B
-    #     for v in memory_B:
-    #         self.vprop_fired_now[v] = 1
-    #         self.vprop_fired[v] += 1
-    #         self.vprop_memories[v] += 1
-
-    #     memory_C = []
-    #     # Check and fire adjacent nodes:
-    #     for v in self.g.iter_vertices():
-    #         self._check_and_fire_and_add(v, memory_C)
-
-    #     inter = self._interference_check(i, j, memory_C)
-    #     self.vprop_fired.a = 0
-    #     self.vprop_fired_now.a = 0
-    #     self.memory_bank.append(memory_C)
-
-    #     return inter, len(memory_C)
-
     def simulate(self):
         i, j = np.meshgrid(
             np.arange(len(self.memory_bank)), np.arange(len(self.memory_bank))
