@@ -1,0 +1,106 @@
+\documentclass[12pt]{extarticle}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{afterpage}
+\usepackage{amsthm}
+\usepackage[margin = 1in]{geometry}
+\usepackage{fancyhdr}
+\usepackage{framed}
+\usepackage{enumitem}
+\usepackage{stmaryrd}
+\usepackage{multirow}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\e}{\epsilon}
+\renewcommand\labelitemi{-}
+\newcommand*\interior[1]{\mathring{#1}}
+\newcommand*\closure[1]{\overline{#1}}
+\DeclareMathOperator{\im}{Im}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem*{claim}{Claim}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+
+
+\title{\textbf{Least Upper Bound for the Subgraph Capacity of General Graphs}}
+\author{Chandradeep Chowdhury \\ cchowdhu@calpoly.edu}
+\date{\today}
+
+\begin{document}
+% \maketitle
+
+\section{Results}
+
+\begin{definition}
+    (\textbf{Interference}) Given two sets $U, W$, we say $U$ $k-$\textit{interferes} with $W$ if 
+    \begin{equation}
+        |U \cap W| \ge  \frac{|W|}{k}
+    \end{equation}
+    for some $k \in (0,|W|]$
+\end{definition}
+
+Note that if $|U| = |W|$, then $U$ $k$-interferes with $W$ if and only if $W$ $k$-interferes with $U$. We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all values of $\frac{|W|}{k}$ will be less than 1. Note that we do not to floor or ceil thw  RHS since the LHS will always be an integer. 
+
+\begin{definition} (\textbf{(r,T,k)-Subgraph capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the maximum number of subgraphs that can be generated randomly with expected size $r$ subject to the constraint that for any randomly selected subgraph $U$, 
+\begin{equation}
+    \E[|X_U^k|] \le T
+\end{equation}
+where $X_U^k = \{W \in V^r \mid U \;k\text{-interferes with } W\}$ and $V^r$ is the set of all currently generated subgraphs with expected size $r$. 
+\end{definition}
+
+Intuitively, $\E[|X_U^k|]$ represents the expected number of k-interferences caused by randomly picking a subgraph $U$.
+
+\begin{lemma}
+    Given a vertex set $V$ with $n$ vertices and two subsets $U,W$ or size $r$, the probability that $U$ $k$-interferes with $W$ is 
+    \begin{equation*}
+        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
+    \end{equation*}
+\end{lemma}
+\begin{proof}
+    if $V = \{v_1,...,v_n\}$, we can represent a subset $U$ as a vector of length $n$, $u$ defined by
+    $$
+    u[i] = \begin{cases}
+        1 & \text{if } v_i \in U \\
+        0 & \text{if } v_i \notin U
+    \end{cases}
+    $$
+    With this representation, $U,W$ intersect that the indices where both vectors $u, w$ have a $1$. Let $Y$ be a random variable denoting the number of indices where both $u, w$ have a 1. Then 
+    \begin{equation}
+        P(Y=y) = \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
+    \end{equation}
+    Then the probability that $U$ $k$-interferes with $W$ is 
+    \begin{equation}
+        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
+    \end{equation}
+\end{proof}
+
+\begin{theorem}
+    Given a vertex set $V$ with $n$ vertices, the $(r,T,k)$-subgraph capacity of $V$ is 
+    \begin{equation*}
+        \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
+    \end{equation*}
+\end{theorem}
+\begin{proof}
+    Let $M$ be the number of subgraphs of size $r$ currently generated. Pick an arbitrary subgraph $u$ of size $r$. From lemma 3., we know that the probability of $U$ $k$-interfering with another subgraph is $F(n,r,k)$. Since there are $M-1$ such subgraphs, the expected number of $k$-interferences by picking $U$ is 
+    \begin{equation}
+        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1)
+    \end{equation}
+    From equation (2), we have 
+    \begin{equation}
+        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1) < T \implies M < \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
+    \end{equation}
+    The $(r,T,k)$-subgraph capacity of $V$ is the largest $M$ that satisfies equation (8).
+\end{proof}
+
+\end{document}
