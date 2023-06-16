@@ -30,38 +30,29 @@ class NeuroidalModel:
         self.P = D / (N - 1)
         self.F = F
 
-    # Create the graph with the properties
-    # def create_graph(self):
-    #     self.g = gt.Graph()
-    #     self.g.add_vertex(self.N)
+    # Experimental!!
+    # Generate an Erdos-Renyi G(n,p) gt.Graph where:
+    # n: number of nodes
+    # p: probability of edge existing between two nodes
+    def create_gnp_graph(n: int, p: float) -> gt.Graph:
+        # relationship between m and p
+        m = int(p * (n * (n - 1)) / 2)
+        g = gt.Graph()
+        g.add_vertex(n)
 
-    #     # Generating far less edges now
-    #     self.num_edges = self.P * comb(self.N, 2)
-    #     gt.add_random_edges(self.g, self.num_edges, parallel=False, self_loops=False)
+        prob = lambda r, s: p
 
-    #     gt.random_rewire(
-    #         self.g, model="erdos", parallel_edges=False, self_loops=False, verbose=False
-    #     )
+        # Edge generation
+        sources = np.random.randint(0, n - 1, m)
+        targets = np.random.randint(0, n - 1, m)
 
-    #     self.vprop_fired = self.g.new_vertex_property("int")
-    #     self.vprop_memories = self.g.new_vertex_property("int")
-    #     self.vprop_fired_now = self.g.new_vertex_property("int")
-    #     self.vprop_weight = self.g.new_vertex_property("double")
-    #     self.vprop_threshold = self.g.new_vertex_property("double")
+        mask = sources != targets
+        edges = np.column_stack((sources[mask], targets[mask]))
+        g.add_edge_list(edges)
 
-    #     self.vprop_fired.a = 0
-    #     self.vprop_memories.a = 0
-    #     self.vprop_fired_now.a = 0
-    #     self.vprop_weight.a = 0.0
-    #     self.vprop_threshold.a = self.T
+        gt.random_rewire(g, model="erdos", edge_probs=prob)
 
-    #     self.eprop_fired = self.g.new_edge_property("int")
-    #     self.eprop_weight = self.g.new_edge_property("double")
-
-    #     self.eprop_fired.a = 0
-    #     self.eprop_weight.a = self.T / (self.k_adj * self.k)
-
-    #     return self
+        return g
 
     def create_graph(self):
         self.g = gt.Graph()
