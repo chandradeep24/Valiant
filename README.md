@@ -4,6 +4,8 @@ Experiments on random graphs
 
 ## Instructions
 
+### Valiant Neuroidal Model
+
 Fork the repo before cloning. Submit pull requests to have your changes merged.
 
 1. Install miniconda or anaconda
@@ -14,3 +16,8 @@ Fork the repo before cloning. Submit pull requests to have your changes merged.
     * Add them the YAML using `conda env export > environment.yml`
 5. Refresh the kernel list and select the `gt` kernel in the notebook.
 6. For scripts, make sure you have the correct interpreter set in your editor.
+
+### Sublist Model
+
+1. Make sure Python and NumPy are installed
+2. Run the ```sublists```notebook cells
