@@ -4,9 +4,9 @@ Experiments on random graphs
 
 ## Instructions
 
-### Valiant Neuroidal Model
+Fork the repo before cloning. Submit pull requests to have your changes merged. Sync the fork periodically to pull changes.
 
-Fork the repo before cloning. Submit pull requests to have your changes merged.
+### Valiant Neuroidal Model
 
 1. Install miniconda or anaconda
 2. Start a terminal in the Valiant directory
