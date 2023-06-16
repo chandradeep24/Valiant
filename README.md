@@ -20,4 +20,4 @@ Fork the repo before cloning. Submit pull requests to have your changes merged. 
 ### Sublist Model
 
 1. Make sure Python and NumPy are installed
-2. Run the ```sublists```notebook cells
+2. Run the ```sublists``` notebook cells
