@@ -1,11 +1,11 @@
-\documentclass[12pt]{extarticle}
+\documentclass[10pt]{extarticle}
 \usepackage[utf8]{inputenc}
 \usepackage{mathtools}
 \usepackage{amssymb}
 \usepackage{listings}
 \usepackage{afterpage}
 \usepackage{amsthm}
-\usepackage[margin = 1in]{geometry}
+\usepackage[margin = 0.5in]{geometry}
 \usepackage{fancyhdr}
 \usepackage{framed}
 \usepackage{enumitem}
@@ -49,16 +49,18 @@
     for some $k \in (0,|W|]$
 \end{definition}
 
-Note that if $|U| = |W|$, then $U$ $k$-interferes with $W$ if and only if $W$ $k$-interferes with $U$. We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all values of $\frac{|W|}{k}$ will be less than 1.
+\begin{corollary}
+    If $|U| = |W|$, then $U$ $k$-interferes with $W$ if and only if $W$ $k$-interferes with $U$.
+\end{corollary}
 
-\begin{definition} (\textbf{(r,T,k)-Subgraph capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the maximum number of subgraphs that can be generated randomly with size $r$ subject to the constraint that for any randomly selected subgraph $U$, 
+We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all values of $\frac{|W|}{k}$ will be less than 1.
+
+\begin{definition} (\textbf{(r,T,k)-Subgraph capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the maximum number of subgraphs of size $r$ subject to the constraint that for any randomly generated subgraph $U$ of size $r$, 
 \begin{equation}
-    \E[|X_U^k|] \le T
+    \E[X] \le T
 \end{equation}
-where $X_U^k = \{W \in V^r \mid U \;k\text{-interferes with } W\}$ and $V^r$ is the set of all currently generated subgraphs with size $r$. 
+where $X$ is the number of interferences caused by adding $U$ to the existing collection of subgraphs. 
 \end{definition}
-
-Intuitively, $\E[|X_U^k|]$ represents the expected number of k-interferences caused by randomly picking a subgraph $U$.
 
 \begin{lemma}
     Given a vertex set $V$ with $n$ vertices and two subsets $U,W$ of size $r$, the probability that $U$ $k$-interferes with $W$ is 
@@ -87,19 +89,20 @@ Intuitively, $\E[|X_U^k|]$ represents the expected number of k-interferences cau
 \begin{theorem}
     Given a vertex set $V$ with $n$ vertices, the $(r,T,k)$-subgraph capacity of $V$ is 
     \begin{equation*}
-        \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
+        \left\lfloor \frac{2T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1 \right\rfloor
     \end{equation*}
 \end{theorem}
 \begin{proof}
-    Let $M$ be the number of subgraphs of size $r$ currently generated. Pick an arbitrary subgraph $U$ of size $r$. From lemma 3., we know that the probability of $U$ $k$-interfering with another subgraph is $\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}$. Since there are $M-1$ such subgraphs, the expected number of $k$-interferences by picking $U$ is 
+    Let $M-1$ be the number of subgraphs of size $r$ currently generated. Add an arbitrary subgraph $U$ of size $r$. From lemma 4., we know that the probability of $U$ $k$-interfering with another subgraph is $\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}$. Since there are $M-1$ other subgraphs, the expected number of $k$-interferences by adding $U$ is 
     \begin{equation}
-        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1)
+        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} \frac{M-1}{2}
     \end{equation}
+    Note that we are dividing by 2 since the probability from lemma 4. is the probability that adding $U$ will cause $2$ interferences due to the relationship described in corollary 2.
     From equation (2), we have 
     \begin{equation}
-        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1) \le T \implies M \le \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
+        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} \frac{(M-1)}{2} \le T \implies M \le \frac{2T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
     \end{equation}
-    The $(r,T,k)$-subgraph capacity of $V$ is the largest $M$ that satisfies equation (6).
+    The $(r,T,k)$-subgraph capacity of $V$ is the largest integer $M$ that satisfies equation (6).
 \end{proof}
 
 \end{document}
