@@ -97,7 +97,7 @@ Intuitively, $\E[|X_U^k|]$ represents the expected number of k-interferences cau
     \end{equation}
     From equation (2), we have 
     \begin{equation}
-        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1) < T \implies M < \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
+        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1) \le T \implies M \le \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
     \end{equation}
     The $(r,T,k)$-subgraph capacity of $V$ is the largest $M$ that satisfies equation (6).
 \end{proof}
