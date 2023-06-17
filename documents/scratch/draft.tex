@@ -50,19 +50,19 @@
     for some $k \in (0,|W|]$
 \end{definition}
 
-Note that if $|U| = |W|$, then $U$ $k$-interferes with $W$ if and only if $W$ $k$-interferes with $U$. We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all values of $\frac{|W|}{k}$ will be less than 1. Note that we do not to floor or ceil thw  RHS since the LHS will always be an integer. 
+Note that if $|U| = |W|$, then $U$ $k$-interferes with $W$ if and only if $W$ $k$-interferes with $U$. We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all values of $\frac{|W|}{k}$ will be less than 1.
 
-\begin{definition} (\textbf{(r,T,k)-Subgraph capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the maximum number of subgraphs that can be generated randomly with expected size $r$ subject to the constraint that for any randomly selected subgraph $U$, 
+\begin{definition} (\textbf{(r,T,k)-Subgraph capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the maximum number of subgraphs that can be generated randomly with size $r$ subject to the constraint that for any randomly selected subgraph $U$, 
 \begin{equation}
     \E[|X_U^k|] \le T
 \end{equation}
-where $X_U^k = \{W \in V^r \mid U \;k\text{-interferes with } W\}$ and $V^r$ is the set of all currently generated subgraphs with expected size $r$. 
+where $X_U^k = \{W \in V^r \mid U \;k\text{-interferes with } W\}$ and $V^r$ is the set of all currently generated subgraphs with size $r$. 
 \end{definition}
 
 Intuitively, $\E[|X_U^k|]$ represents the expected number of k-interferences caused by randomly picking a subgraph $U$.
 
 \begin{lemma}
-    Given a vertex set $V$ with $n$ vertices and two subsets $U,W$ or size $r$, the probability that $U$ $k$-interferes with $W$ is 
+    Given a vertex set $V$ with $n$ vertices and two subsets $U,W$ of size $r$, the probability that $U$ $k$-interferes with $W$ is 
     \begin{equation*}
         \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
     \end{equation*}
@@ -70,12 +70,12 @@ Intuitively, $\E[|X_U^k|]$ represents the expected number of k-interferences cau
 \begin{proof}
     if $V = \{v_1,...,v_n\}$, we can represent a subset $U$ as a vector of length $n$, $u$ defined by
     $$
-    u[i] = \begin{cases}
+    u_i = \begin{cases}
         1 & \text{if } v_i \in U \\
         0 & \text{if } v_i \notin U
     \end{cases}
     $$
-    With this representation, $U,W$ intersect that the indices where both vectors $u, w$ have a $1$. Let $Y$ be a random variable denoting the number of indices where both $u, w$ have a 1. Then 
+    With this representation, $U,W$ intersect at the indices where both vectors $u, w$ have a $1$. Let $Y$ be a random variable denoting the number of indices where both $u, w$ have a 1. Then 
     \begin{equation}
         P(Y=y) = \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
     \end{equation}
@@ -92,7 +92,7 @@ Intuitively, $\E[|X_U^k|]$ represents the expected number of k-interferences cau
     \end{equation*}
 \end{theorem}
 \begin{proof}
-    Let $M$ be the number of subgraphs of size $r$ currently generated. Pick an arbitrary subgraph $u$ of size $r$. From lemma 3., we know that the probability of $U$ $k$-interfering with another subgraph is $F(n,r,k)$. Since there are $M-1$ such subgraphs, the expected number of $k$-interferences by picking $U$ is 
+    Let $M$ be the number of subgraphs of size $r$ currently generated. Pick an arbitrary subgraph $U$ of size $r$. From lemma 3., we know that the probability of $U$ $k$-interfering with another subgraph is $\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}$. Since there are $M-1$ such subgraphs, the expected number of $k$-interferences by picking $U$ is 
     \begin{equation}
         \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1)
     \end{equation}
@@ -100,7 +100,7 @@ Intuitively, $\E[|X_U^k|]$ represents the expected number of k-interferences cau
     \begin{equation}
         \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1) < T \implies M < \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
     \end{equation}
-    The $(r,T,k)$-subgraph capacity of $V$ is the largest $M$ that satisfies equation (8).
+    The $(r,T,k)$-subgraph capacity of $V$ is the largest $M$ that satisfies equation (6).
 \end{proof}
 
 \end{document}

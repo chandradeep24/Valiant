@@ -21,4 +21,3 @@ Fork the repo before cloning. Submit pull requests to have your changes merged. 
 
 1. Make sure Python and NumPy are installed
 2. Run the ```sublists``` notebook cells
-3. Set `processes = n-1 or n-2` where `n` is the number of cores in your system. 
