@@ -55,11 +55,11 @@
 
 We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all values of $\frac{|W|}{k}$ will be less than 1.
 
-\begin{definition} (\textbf{(r,T,k)-Subgraph capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the expected maximum number of subgraphs of expected size $r$ that cna be collected subject to the constraint that for any randomly pick subgraph $U$, 
+\begin{definition} (\textbf{(r,T,k)-Subgraph capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the expected maximum number of subgraphs of expected size $r$ that cna be collected subject to the constraint that for any randomly picked subgraph $U$, 
 \begin{equation}
     \E[X] \le T
 \end{equation}
-where $X$ is the number of interferences caused due to $U$. 
+where $X$ is the number of interferences caused due to picking $U$. 
 \end{definition}
 
 First, we consider the case where all subgraphs are of the same size.
@@ -98,6 +98,20 @@ First, we consider the case where all subgraphs are of the same size.
 \end{theorem}
 
 \begin{proof}
+    Suppose we have $M$ subgraphs in the collection. Pick an arbitrary subgraph $U$. From lemma 4., we know that the probability of $U$ $k$-interfering with another subgraph is $\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}$. This can be interpreted as the expected number of $k$-interferences caused by picking $U$ with one subgraph. Since there are $M-1$ other subgraphs, the expected number of $k$-interferences caused by picking $U$ is 
+    \begin{equation}
+        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1)
+    \end{equation}
+
+    From equation (2), we have 
+
+    \begin{equation}
+        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1) \le T \implies M \le \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
+    \end{equation}
+    The $(r,T,k)$-subgraph capacity of $V$ is the largest integer $M$ that satisfies equation (6).
+\end{proof}
+
+\begin{proof}[Alternate proof]
     Suppose we have $M$ subgraphs in the collection. Pick two subgraphs $U,W$. From lemma 4., we know that the probability of $U$ $k$-interfering with $W$ is $\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}$. Since all subgraphs have the same size, by corollary 2. this is the probability that $U,W$ pair will cause 2 k-interferences. So the expected number of interferences caused by one pair is
     $$
     2\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} 
@@ -128,19 +142,6 @@ First, we consider the case where all subgraphs are of the same size.
 %     \end{equation*}
 % \end{theorem}
 
-% \begin{proof}
-%     Let $M-1$ be the number of subgraphs of size $r$ currently generated. Add an arbitrary subgraph $U$ of size $r$. From lemma 4., we know that the probability of $U$ $k$-interfering with another subgraph is $\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}$. This can be interpreted as the expected number of additional $k$-interferences $U$ will cause with one subgraph. Since there are $M-1$ other subgraphs, the expected number of $k$-interferences by adding $U$ is 
-%     \begin{equation}
-%         \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1)
-%     \end{equation}
-
-%     From equation (2), we have 
-
-%     \begin{equation}
-%         \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} (M-1) \le T \implies M \le \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
-%     \end{equation}
-%     The $(r,T,k)$-subgraph capacity of $V$ is the largest integer $M$ that satisfies equation (6).
-% \end{proof}
 
 Now we consider the case where the subgraphs might have different sizes but have expected size $r$.
 
@@ -168,6 +169,8 @@ Now we consider the case where the subgraphs might have different sizes but have
         placeholder
     \end{equation*}
 \end{theorem}
+
+Remark. I am not sure if we can use the first proof approach used in theorem 5. 
 
 \begin{proof}
     Suppose we have $M$ subgraphs $U_1,...,U_M$ with sizes $r_1,...,r_M$. Pick two subgraphs $U_i,U_j$. From lemma 6., we know that the expected number of interferences caused by this pair is
