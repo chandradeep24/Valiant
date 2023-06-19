@@ -160,11 +160,11 @@ Remark. I am not sure if we can use the first proof approach used in theorem 5.
     $$
     We then sum over all possible pairings to get the expected number of total interferences:
     $$
-    \sum_{(i,j) \in (1,M)\times(1,M), i \ne j} \Biggl( \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}} \Biggr)
+    \sum_{(i,j) \in [1,M]\times[1,M], i \ne j} \Biggl( \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}} \Biggr)
     $$
     Since there are $M$ subgraphs, the expected number of interferences by picking one subgraph is
     $$
-    \frac{1}{M} \sum_{(i,j) \in (1,M)\times(1,M), i \ne j} \Biggl( \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}} \Biggr)
+    \frac{1}{M} \sum_{(i,j) \in [1,M]\times[1,M], i \ne j} \Biggl( \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}} \Biggr)
     $$
 
 
