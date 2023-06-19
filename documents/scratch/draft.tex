@@ -62,36 +62,28 @@ We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all 
 where $X$ is the number of interferences caused due to picking $U$. 
 \end{definition}
 
-First, we consider the case where all subgraphs are of the same size.
-
 \begin{lemma}
-    Given a vertex set $V$ with $n$ vertices and two subsets $U,W$ of size $r$, the probability that $U$ $k$-interferes with $W$ is 
+    Given a vertex set $V$ with $n$ vertices and two subsets $U,W$ of size $r_u,r_w$, the probability that $U$ $k$-interferes with $W$ is 
     \begin{equation*}
-        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
+        \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w}  \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}
     \end{equation*}
 \end{lemma}
 \begin{proof}
-    if $V = \{v_1,...,v_n\}$, we can represent a subset $U$ as a vector of length $n$, $u$ defined by
-    $$
-    u_i = \begin{cases}
-        1 & \text{if } v_i \in U \\
-        0 & \text{if } v_i \notin U
-    \end{cases}
-    $$
-    With this representation, $U,W$ intersect at the indices where both vectors $u, w$ have a $1$. Let $Y$ be a random variable denoting the number of indices where both $u, w$ have a 1. Then 
+    We use the same representation as in lemma 4. Note that in this case,
     \begin{equation}
-        \mathbb{P}(Y=y) = \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
+        \mathbb{P}(Y=y) = \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}
     \end{equation}
-    This follows from the fact that given the first array $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second array in $\binom{r}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r$ indices corresponding to the 0's in the first array with $r-y$ 1's in $\binom{n-r}{r-y}$ ways. Finally we divide by the total number of possible subgraphs $\binom{n}{r}$. 
+    This follows from the fact that given the first array $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second array in $\binom{r_u}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r_u$ indices corresponding to the 0's in the first array with $r_w-y$ 1's in $\binom{n-r_u}{r_w-y}$ ways. Finally we divide by the total number of possible subgraphs $\binom{n}{r_w}$. 
     Then the probability that $U$ $k$-interferes with $W$ is 
     \begin{equation}
-        \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
+        \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w}  \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}
     \end{equation}
 \end{proof}
 
+First, we consider the case where all subgraphs are of the same size.
 
 \begin{theorem}
-    Given a vertex set $V$ with $n$ vertices, the $(r,T,k)$-subgraph capacity of $V$ is 
+    Given a vertex set $V$ with $n$ vertices and the propery that every generated subgraph will have size exactly $r$, the $(r,T,k)$-subgraph capacity of $V$ is 
     \begin{equation*}
         \left\lfloor \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1 \right\rfloor
     \end{equation*}
@@ -143,25 +135,7 @@ First, we consider the case where all subgraphs are of the same size.
 % \end{theorem}
 
 
-Now we consider the case where the subgraphs might have different sizes but have expected size $r$.
-
-\begin{lemma}
-    Given a vertex set $V$ with $n$ vertices and two subsets $U,W$ of size $r_u,r_w$, the probability that $U$ $k$-interferes with $W$ is 
-    \begin{equation*}
-        \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w}  \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}
-    \end{equation*}
-\end{lemma}
-\begin{proof}
-    We use the same representation as in lemma 4. Note that in this case,
-    \begin{equation}
-        \mathbb{P}(Y=y) = \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}
-    \end{equation}
-    This follows from the fact that given the first array $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second array in $\binom{r_u}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r_u$ indices corresponding to the 0's in the first array with $r_w-y$ 1's in $\binom{n-r_u}{r_w-y}$ ways. Finally we divide by the total number of possible subgraphs $\binom{n}{r_w}$. 
-    Then the probability that $U$ $k$-interferes with $W$ is 
-    \begin{equation}
-        \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w}  \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}
-    \end{equation}
-\end{proof}
+Now we consider the case where the subgraphs have expected size $r$ with perhaps a known distribution (?)
 
 \begin{theorem}
     Given a vertex set $V$ with $n$ vertices, the $(r,T,k)$-subgraph capacity of $V$ is 
@@ -173,7 +147,7 @@ Now we consider the case where the subgraphs might have different sizes but have
 Remark. I am not sure if we can use the first proof approach used in theorem 5. 
 
 \begin{proof}
-    Suppose we have $M$ subgraphs $U_1,...,U_M$ with sizes $r_1,...,r_M$. Pick two subgraphs $U_i,U_j$. From lemma 6., we know that the expected number of interferences caused by this pair is
+    Suppose we have $M$ subgraphs $U_1,...,U_M$ with sizes $r_1,...,r_M$. Pick two subgraphs $U_i,U_j$. From lemma 4., we know that the expected number of interferences caused by this pair is
     $$
     \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}}
     $$
