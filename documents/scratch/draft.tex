@@ -1,4 +1,4 @@
-\documentclass[10pt]{extarticle}
+\documentclass[12pt]{extarticle}
 \usepackage[utf8]{inputenc}
 \usepackage{mathtools}
 \usepackage{amssymb}
@@ -32,7 +32,7 @@
 \newtheorem{example}[theorem]{Example}
 
 
-\title{\textbf{Least Upper Bound for the Subgraph Capacity of General Graphs}}
+\title{\textbf{Expected Subgraph Capacity for General Graphs}}
 \author{Chandradeep Chowdhury \\ cchowdhu@calpoly.edu}
 \date{\today}
 
@@ -80,7 +80,7 @@ First, we consider the case where all subgraphs are of the same size.
     $$
     With this representation, $U,W$ intersect at the indices where both vectors $u, w$ have a $1$. Let $Y$ be a random variable denoting the number of indices where both $u, w$ have a 1. Then 
     \begin{equation}
-        P(Y=y) = \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
+        \mathbb{P}(Y=y) = \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
     \end{equation}
     This follows from the fact that given the first array $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second array in $\binom{r}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r$ indices corresponding to the 0's in the first array with $r-y$ 1's in $\binom{n-r}{r-y}$ ways. Finally we divide by the total number of possible subgraphs $\binom{n}{r}$. 
     Then the probability that $U$ $k$-interferes with $W$ is 
@@ -153,7 +153,7 @@ Now we consider the case where the subgraphs might have different sizes but have
 \begin{proof}
     We use the same representation as in lemma 4. Note that in this case,
     \begin{equation}
-        P(Y=y) = \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}
+        \mathbb{P}(Y=y) = \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}
     \end{equation}
     This follows from the fact that given the first array $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second array in $\binom{r_u}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r_u$ indices corresponding to the 0's in the first array with $r_w-y$ 1's in $\binom{n-r_u}{r_w-y}$ ways. Finally we divide by the total number of possible subgraphs $\binom{n}{r_w}$. 
     Then the probability that $U$ $k$-interferes with $W$ is 
@@ -185,7 +185,14 @@ Now we consider the case where the subgraphs might have different sizes but have
 
 
     
-    TODO: we need to use the fact that the expected value is $r$ to simplify this then plug it into equation (2) to solve for $M$. We hope the final result will be similar to the result in theorem 5.
+    TODO: we need to use the fact that the expected value is $r$ to simplify this then plug it into equation (2) to solve for $M$. Maybe helpful:
+
+    $$
+    \E \left[ \binom{X}{k} \right] = \sum_{0}^{\infty} \binom{i}{k} \mathbb{P}(X=i)
+    $$
+    
+    
+    We hope the final result will be similar to the result in theorem 5. 
 
     % \begin{equation*}
     %     (M-1) \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}  \le T \implies M \le \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
