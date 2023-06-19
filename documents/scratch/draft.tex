@@ -108,7 +108,7 @@ where $X$ is the number of interferences caused by adding $U$ to the existing co
 \end{proof}
 
 \begin{proof}[Alternate proof]
-    Suppose we have $M$ subgraphs in the collection. Pick two subgraphs $U,W$. From lemma 4., we know that the probability of $U$ $k$-interfering with $W$ is $\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}$. Since all subgraphs have the same size, this is the probability that $U,W$ pair will cause 2 k-interferences. So the expected number of interferences caused by one pair is
+    Suppose we have $M$ subgraphs in the collection. Pick two subgraphs $U,W$. From lemma 4., we know that the probability of $U$ $k$-interfering with $W$ is $\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}$. Since all subgraphs have the same size, by corollary 2. this is the probability that $U,W$ pair will cause 2 k-interferences. So the expected number of interferences caused by one pair is
     $$
     2\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}} 
     $$
@@ -122,9 +122,9 @@ where $X$ is the number of interferences caused by adding $U$ to the existing co
     $$
     From equation (2), we have 
 
-    \begin{equation}
+    \begin{equation*}
         (M-1) \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}  \le T \implies M \le \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1
-    \end{equation}
+    \end{equation*}
     The $(r,T,k)$-subgraph capacity of $V$ is the largest integer $M$ that satisfies equation (6).
     
 \end{proof}
