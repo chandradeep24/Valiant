@@ -69,7 +69,14 @@ where $X$ is the number of interferences caused due to picking $U$.
     \end{equation*}
 \end{lemma}
 \begin{proof}
-    We use the same representation as in lemma 4. Note that in this case,
+    If $V = \{v_1,...,v_n\}$, we can represent a subset $U$ as a vector $u$ of length $n$ defined by
+    $$
+    u_i = \begin{cases}
+        1 & \text{if } v_i \in U \\
+        0 & \text{if } v_i \notin U
+    \end{cases}
+    $$
+    With this representation, $U,W$ intersect at the indices where both vectors $u, w$ have a $1$. Let $Y$ be a random variable denoting the number of indices where both $u, w$ have a 1. Then 
     \begin{equation}
         \mathbb{P}(Y=y) = \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}
     \end{equation}
