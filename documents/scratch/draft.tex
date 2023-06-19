@@ -80,7 +80,7 @@ where $X$ is the number of interferences caused by adding $U$ to the existing co
     \begin{equation}
         P(Y=y) = \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
     \end{equation}
-    This follows from the fact that given the first array $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second array in $\binom{r}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r$ indices corresponding to the 0's with $r-y$ 1's in the first array in $\binom{n-r}{r-y}$ ways. Finally we divide by the total number of possible subgraphs $\binom{n}{r}$. 
+    This follows from the fact that given the first array $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second array in $\binom{r}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r$ indices corresponding to the 0's in the first array with $r-y$ 1's in $\binom{n-r}{r-y}$ ways. Finally we divide by the total number of possible subgraphs $\binom{n}{r}$. 
     Then the probability that $U$ $k$-interferes with $W$ is 
     \begin{equation}
         \sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}
