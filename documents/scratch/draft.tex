@@ -170,17 +170,17 @@ Now we consider the case where the subgraphs might have different sizes but have
 \end{theorem}
 
 \begin{proof}
-    Suppose we have $M$ subgraphs $U_1,...,U_m$ with sizes $r_1,...,r_m$. Pick two subgraphs $U_i,U_j$. From lemma 6., we know that the expected number of interferences caused by this pair is
+    Suppose we have $M$ subgraphs $U_1,...,U_M$ with sizes $r_1,...,r_M$. Pick two subgraphs $U_i,U_j$. From lemma 6., we know that the expected number of interferences caused by this pair is
     $$
     \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}}
     $$
     We then sum over all possible pairings to get the expected number of total interferences:
     $$
-    \sum_{(i,j) \in (1,m)\times(1,m), i \ne j} \Biggl( \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}} \Biggr)
+    \sum_{(i,j) \in (1,M)\times(1,M), i \ne j} \Biggl( \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}} \Biggr)
     $$
     Since there are $M$ subgraphs, the expected number of interferences by picking one subgraph is
     $$
-    \frac{1}{M} \sum_{(i,j) \in (1,m)\times(1,m), i \ne j} \Biggl( \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}} \Biggr)
+    \frac{1}{M} \sum_{(i,j) \in (1,M)\times(1,M), i \ne j} \Biggl( \sum_{y = \left\lceil \frac{r_j}{k} \right\rceil}^{r_j}  \frac{\binom{r_i}{y} \binom{n-r_i}{r_j-y}}{\binom{n}{r_j}} + \sum_{y = \left\lceil \frac{r_i}{k} \right\rceil}^{r_i}  \frac{\binom{r_j}{y} \binom{n-r_j}{r_i-y}}{\binom{n}{r_i}} \Biggr)
     $$
 
 
