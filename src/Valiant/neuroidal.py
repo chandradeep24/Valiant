@@ -110,6 +110,13 @@ class NeuroidalModel:
             self.memory_bank.append(memory_A)
         return self
 
+    def find_union_of_neighbors(self):
+        self.usize = 0
+        self.memset = set(node for memory in self.memory_bank for node in memory)
+        print(self.memset)
+
+        return self
+
     # Check for interference
     def _interference_check(self, A_index, B_index, C):
         sum = 0
@@ -176,7 +183,8 @@ class NeuroidalModel:
             if inter_flag > 0:
                 total_inters += inter_flag
                 inst_inters += inter_flag
-                if inst_inters / self.H > self.STOP:  # Changed this
+                # if inst_inters / self.H > self.STOP:
+                if total_inters / len(self.memory_bank) > self.STOP:
                     print(
                         "Config: N=",
                         self.N,
@@ -196,7 +204,7 @@ class NeuroidalModel:
                         len(self.memory_bank),
                         " memories due to more than ",
                         self.STOP * 100,
-                        "instantaneous total interference",
+                        "percent average total interference",
                     )
                     print("Instantaneous interference rate: ", inst_inters / self.H)
                     print(
