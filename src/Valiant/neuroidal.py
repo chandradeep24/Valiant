@@ -3,6 +3,8 @@ from math import comb
 import numpy as np
 from numpy.random import *
 import graph_tool.all as gt
+import matplotlib.pyplot as plt
+import shutil
 
 
 seed(42)
@@ -14,6 +16,16 @@ gt.seed_rng(42)
 
 # _ indicates private function
 # public functions should return self to be composable
+
+
+def generate_color_by_value(value, cap=10):
+    value = min(max(value, 0), cap)
+    r = value / cap
+    color = [r, 0.0, 0.0]
+    return color
+
+
+abc_map = {"A": [1.0, 0.75, 0.8], "B": [0.0, 0.0, 1.0], "C": [0.0, 1.0, 0.0]}
 
 
 class NeuroidalModel:
@@ -29,6 +41,7 @@ class NeuroidalModel:
         self.r_exp = r_exp
         self.P = D / (N - 1)
         self.F = F
+        self.first_join = True
 
     # Experimental!!
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
@@ -60,12 +73,14 @@ class NeuroidalModel:
 
         self.vprop_fired = self.g.new_vertex_property("int")
         self.vprop_memories = self.g.new_vertex_property("int")
+        self.vprop_n_memories = self.g.new_vertex_property("int")
         self.vprop_fired_now = self.g.new_vertex_property("int")
         self.vprop_weight = self.g.new_vertex_property("double")
         self.vprop_threshold = self.g.new_vertex_property("double")
 
         self.vprop_fired.a = 0
         self.vprop_memories.a = 0
+        self.vprop_n_memories.a = 0
         self.vprop_fired_now.a = 0
         self.vprop_weight.a = 0.0
         self.vprop_threshold.a = self.T
@@ -101,6 +116,74 @@ class NeuroidalModel:
         # print(self.adjmat)
         return self
 
+    def visualize(self, output_file_name):
+        self.vprop_colors = self.g.new_vertex_property("vector<float>")
+        self.vprop_text = self.g.new_vertex_property("string")
+        for v in self.g.vertices():
+            self.vprop_colors[v] = generate_color_by_value(self.vprop_memories[v])
+            self.vprop_text[v] = str(self.vprop_memories[v])
+        gt.graph_draw(
+            self.g,
+            pos=gt.fruchterman_reingold_layout(self.g),
+            output=output_file_name,
+            output_size=(1000, 1000),
+            vertex_fill_color=self.vprop_colors,
+            bg_color="black",
+            vertex_text=self.vprop_text,
+            vertex_text_color="white",
+        )
+
+    def visualize_n(self, output_file_name):
+        self.vprop_colors = self.g.new_vertex_property("vector<float>")
+        self.vprop_text = self.g.new_vertex_property("string")
+        for v in self.g.vertices():
+            self.vprop_colors[v] = generate_color_by_value(
+                self.vprop_n_memories[v], cap=50
+            )
+            self.vprop_text[v] = str(self.vprop_n_memories[v])
+        gt.graph_draw(
+            self.g,
+            pos=gt.fruchterman_reingold_layout(self.g),
+            output=output_file_name,
+            output_size=(1000, 1000),
+            vertex_fill_color=self.vprop_colors,
+            bg_color="black",
+            vertex_text=self.vprop_text,
+            vertex_text_color="white",
+        )
+
+    def visualize_first_join(self, A, B, C, output_file_name):
+        self.vprop_colors = self.g.new_vertex_property("vector<float>")
+        self.vprop_text = self.g.new_vertex_property("string")
+        self.eprop_colors = self.g.new_edge_property("vector<float>")
+        for v in self.g.vertices():
+            if v in A:
+                self.vprop_colors[v] = abc_map["A"]
+                self.vprop_text[v] += "A"
+                for e in v.out_edges():
+                    self.eprop_colors[e] = abc_map["A"]
+            elif v in B:
+                self.vprop_colors[v] = abc_map["B"]
+                self.vprop_text[v] += "B"
+                for e in v.out_edges():
+                    self.eprop_colors[e] = abc_map["B"]
+            elif v in C:
+                self.vprop_colors[v] = abc_map["C"]
+                self.vprop_text[v] += "C"
+            else:
+                self.vprop_colors[v] = [0.0, 0.0, 0.0]
+        gt.graph_draw(
+            self.g,
+            pos=gt.fruchterman_reingold_layout(self.g),
+            output=output_file_name,
+            output_size=(1000, 1000),
+            vertex_fill_color=self.vprop_colors,
+            bg_color="black",
+            vertex_text=self.vprop_text,
+            vertex_text_color="white",
+            edge_color=self.eprop_colors,
+        )
+
     def generate_memory_bank(self):
         self.memory_bank = []
         for i in np.arange(0, self.START_MEM):
@@ -108,6 +191,8 @@ class NeuroidalModel:
                 np.arange(0, self.N - 1), size=self.r_exp
             )
             self.memory_bank.append(memory_A)
+            for v in memory_A:
+                self.vprop_n_memories[v] += 1
         return self
 
     def find_union_of_neighbors(self):
@@ -126,10 +211,12 @@ class NeuroidalModel:
                 inter = list(set(C) & set(self.memory_bank[i]))
                 if len(inter) > len(self.memory_bank[i]) / self.F:
                     sum += 2
+                    for v in inter:
+                        self.vprop_memories[v] += 1
         return sum
 
     # Vectorized JOIN function
-    def _JOIN_one_step_shared(self, i, j):
+    def _JOIN_one_step_shared(self, i, j, output_directory):
         self._generate_adj_mat()
 
         memory_A = self.memory_bank[i]
@@ -143,13 +230,25 @@ class NeuroidalModel:
 
         memory_C = np.nonzero(fired)[0]
 
+        if self.first_join:
+            self.visualize_first_join(
+                memory_A,
+                memory_B,
+                memory_C,
+                os.path.join(output_directory, f"graph_first_join.png"),
+            )
+            self.first_join = False
+
+        for v in memory_C:
+            self.vprop_n_memories[v] += 1
+
         # print((self.adjmat @ state) - 1, fired, memory_C)
         inter = self._interference_check(i, j, memory_C)
         self.memory_bank.append(memory_C)
 
         return inter, len(memory_C)
 
-    def simulate(self):
+    def simulate(self, vis=False):
         i, j = np.meshgrid(
             np.arange(len(self.memory_bank)), np.arange(len(self.memory_bank))
         )
@@ -165,11 +264,31 @@ class NeuroidalModel:
         inst_inters = 0
         inst_len = 0
 
+        output_directory = f"../assets/neurons_{self.N}_degree_{self.D}_replication_{self.r_exp}_edge_weights_{self.k}_threshold_{self.T}_startmem_{self.START_MEM}"
+
+        shutil.rmtree(output_directory)
+
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
+
+        if vis:
+            self.visualize(
+                os.path.join(
+                    output_directory, f"graph_{len(self.memory_bank)}_memories.png"
+                )
+            )
+
+            self.visualize_n(
+                os.path.join(
+                    output_directory, f"graph_{len(self.memory_bank)}_n_memories.png"
+                )
+            )
+
         for pair in pairs:
             ind += 1
             i = pair[0]
             j = pair[1]
-            inter_flag, length = self._JOIN_one_step_shared(i, j)
+            inter_flag, length = self._JOIN_one_step_shared(i, j, output_directory)
             inst_len += length
             if ind % self.H == 0:
                 print("Memories: ", len(self.memory_bank))
@@ -180,6 +299,19 @@ class NeuroidalModel:
                 print("Average size of memories created: ", inst_len / self.H, "\n\n")
                 inst_inters = 0
                 inst_len = 0
+                if vis:
+                    self.visualize(
+                        os.path.join(
+                            output_directory,
+                            f"graph_{len(self.memory_bank)}_memories.png",
+                        )
+                    )
+                    self.visualize_n(
+                        os.path.join(
+                            output_directory,
+                            f"graph_{len(self.memory_bank)}_n_memories.png",
+                        )
+                    )
             if inter_flag > 0:
                 total_inters += inter_flag
                 inst_inters += inter_flag
@@ -211,6 +343,19 @@ class NeuroidalModel:
                         "Average interference rate: ",
                         total_inters / len(self.memory_bank),
                     )
+                    if vis:
+                        self.visualize(
+                            os.path.join(
+                                output_directory,
+                                f"graph_final_memories.png",
+                            )
+                        )
+                        self.visualize_n(
+                            os.path.join(
+                                output_directory,
+                                f"graph_final_n_memories.png",
+                            )
+                        )
                     break
 
         return self
