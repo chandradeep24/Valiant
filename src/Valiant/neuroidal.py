@@ -116,7 +116,7 @@ class NeuroidalModel:
         # print(self.adjmat)
         return self
 
-    def visualize(self, output_file_name):
+    def _visualize(self, output_file_name):
         self.vprop_colors = self.g.new_vertex_property("vector<float>")
         self.vprop_text = self.g.new_vertex_property("string")
         for v in self.g.vertices():
@@ -132,8 +132,9 @@ class NeuroidalModel:
             vertex_text=self.vprop_text,
             vertex_text_color="white",
         )
+        return self
 
-    def visualize_n(self, output_file_name):
+    def _visualize_n(self, output_file_name):
         self.vprop_colors = self.g.new_vertex_property("vector<float>")
         self.vprop_text = self.g.new_vertex_property("string")
         for v in self.g.vertices():
@@ -151,8 +152,9 @@ class NeuroidalModel:
             vertex_text=self.vprop_text,
             vertex_text_color="white",
         )
+        return self
 
-    def visualize_first_join(self, A, B, C, output_file_name):
+    def _visualize_first_join(self, A, B, C, output_file_name):
         self.vprop_colors = self.g.new_vertex_property("vector<float>")
         self.vprop_text = self.g.new_vertex_property("string")
         self.eprop_colors = self.g.new_edge_property("vector<float>")
@@ -183,6 +185,7 @@ class NeuroidalModel:
             vertex_text_color="white",
             edge_color=self.eprop_colors,
         )
+        return self
 
     def generate_memory_bank(self):
         self.memory_bank = []
@@ -195,11 +198,28 @@ class NeuroidalModel:
                 self.vprop_n_memories[v] += 1
         return self
 
-    def find_union_of_neighbors(self):
-        self.usize = 0
-        self.memset = set(node for memory in self.memory_bank for node in memory)
-        print(self.memset)
+    def greedy_generate_memory_bank(self):
+        self.memory_bank = []
 
+        divider = int(0.8 * self.START_MEM)
+
+        # random portion
+        for i in np.arange(0, divider):
+            memory_A = np.random.default_rng().choice(
+                np.arange(0, self.N - 1), size=self.r_exp
+            )
+            self.memory_bank.append(memory_A)
+            for v in memory_A:
+                self.vprop_n_memories[v] += 1
+
+        # greedy portion
+        options = range(0, self.N)
+        for i in np.arange(divider, self.START_MEM):
+            options = sorted(options, key=lambda v: -1 * self.vprop_n_memories[v])
+            memory_A = options[0 : self.r_exp]
+            self.memory_bank.append(memory_A)
+            for v in memory_A:
+                self.vprop_n_memories[v] += 1
         return self
 
     # Check for interference
@@ -231,7 +251,7 @@ class NeuroidalModel:
         memory_C = np.nonzero(fired)[0]
 
         if self.first_join:
-            self.visualize_first_join(
+            self._visualize_first_join(
                 memory_A,
                 memory_B,
                 memory_C,
@@ -272,13 +292,13 @@ class NeuroidalModel:
             os.makedirs(output_directory)
 
         if vis:
-            self.visualize(
+            self._visualize(
                 os.path.join(
                     output_directory, f"graph_{len(self.memory_bank)}_memories.png"
                 )
             )
 
-            self.visualize_n(
+            self._visualize_n(
                 os.path.join(
                     output_directory, f"graph_{len(self.memory_bank)}_n_memories.png"
                 )
@@ -300,13 +320,13 @@ class NeuroidalModel:
                 inst_inters = 0
                 inst_len = 0
                 if vis:
-                    self.visualize(
+                    self._visualize(
                         os.path.join(
                             output_directory,
                             f"graph_{len(self.memory_bank)}_memories.png",
                         )
                     )
-                    self.visualize_n(
+                    self._visualize_n(
                         os.path.join(
                             output_directory,
                             f"graph_{len(self.memory_bank)}_n_memories.png",
@@ -344,13 +364,13 @@ class NeuroidalModel:
                         total_inters / len(self.memory_bank),
                     )
                     if vis:
-                        self.visualize(
+                        self._visualize(
                             os.path.join(
                                 output_directory,
                                 f"graph_final_memories.png",
                             )
                         )
-                        self.visualize_n(
+                        self._visualize_n(
                             os.path.join(
                                 output_directory,
                                 f"graph_final_n_memories.png",
