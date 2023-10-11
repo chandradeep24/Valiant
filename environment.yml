@@ -69,7 +69,6 @@ dependencies:
   - libdeflate=1.18
   - libexpat=2.5.0
   - libffi=3.4.2
-  - libgfortran=5.0.0
   - libgfortran5=12.2.0
   - libgirepository=1.76.1
   - libglib=2.76.3
