@@ -29,7 +29,9 @@ abc_map = {"A": [1.0, 0.75, 0.8], "B": [0.0, 0.0, 1.0], "C": [0.0, 1.0, 0.0]}
 
 
 class NeuroidalModel:
-    def __init__(self, N, D, T, k, k_adj, H, STOP, START_MEM, r_exp, F=2):
+    def __init__(
+        self, N, D, T, k, k_adj, H, STOP, START_MEM, r_exp, F=2, new_mems_only=False
+    ):
         self.N = N
         self.D = D
         self.T = T
@@ -41,7 +43,8 @@ class NeuroidalModel:
         self.r_exp = r_exp
         self.P = D / (N - 1)
         self.F = F
-        self.first_join = True
+
+        self.track_only_new_memories = new_mems_only
 
     # Experimental!!
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
@@ -189,13 +192,22 @@ class NeuroidalModel:
 
     def generate_memory_bank(self):
         self.memory_bank = []
+        self.interference_counts = []
         for i in np.arange(0, self.START_MEM):
             memory_A = np.random.default_rng().choice(
                 np.arange(0, self.N - 1), size=self.r_exp
             )
             self.memory_bank.append(memory_A)
-            for v in memory_A:
-                self.vprop_n_memories[v] += 1
+            if not self.track_only_new_memories:
+                for v in memory_A:
+                    self.vprop_n_memories[v] += 1
+
+        print(
+            "memory bank len:",
+            len(self.memory_bank),
+            "interference count len:",
+            len(self.interference_counts),
+        )
         return self
 
     def greedy_generate_memory_bank(self):
@@ -225,12 +237,16 @@ class NeuroidalModel:
     # Check for interference
     def _interference_check(self, A_index, B_index, C):
         sum = 0
+        c_position = len(self.interference_counts)
+        self.interference_counts.append(0)
         for i in range(len(self.memory_bank)):
             if i != A_index and i != B_index:
                 # print(type(C), type(i))
                 inter = list(set(C) & set(self.memory_bank[i]))
                 if len(inter) > len(self.memory_bank[i]) / self.F:
                     sum += 2
+                    self.interference_counts[c_position] += 1
+                    self.interference_counts[i] += 1
                     for v in inter:
                         self.vprop_memories[v] += 1
         return sum
@@ -250,7 +266,7 @@ class NeuroidalModel:
 
         memory_C = np.nonzero(fired)[0]
 
-        if self.first_join:
+        if self.first_join and self.vis:
             self._visualize_first_join(
                 memory_A,
                 memory_B,
@@ -286,12 +302,17 @@ class NeuroidalModel:
 
         output_directory = f"../assets/neurons_{self.N}_degree_{self.D}_replication_{self.r_exp}_edge_weights_{self.k}_threshold_{self.T}_startmem_{self.START_MEM}"
 
-        shutil.rmtree(output_directory)
+        self.first_join = False
 
-        if not os.path.exists(output_directory):
-            os.makedirs(output_directory)
+        self.vis = vis
 
         if vis:
+            if os.path.exists(output_directory):
+                shutil.rmtree(output_directory)
+                os.makedirs(output_directory)
+            else:
+                os.makedirs(output_directory)
+
             self._visualize(
                 os.path.join(
                     output_directory, f"graph_{len(self.memory_bank)}_memories.png"
@@ -303,6 +324,12 @@ class NeuroidalModel:
                     output_directory, f"graph_{len(self.memory_bank)}_n_memories.png"
                 )
             )
+            self.first_join = True
+
+        for i in range(len(self.memory_bank)):
+            total_inters += self._interference_check(i, i, self.memory_bank[i])
+
+        print(total_inters)
 
         for pair in pairs:
             ind += 1
@@ -332,6 +359,11 @@ class NeuroidalModel:
                             f"graph_{len(self.memory_bank)}_n_memories.png",
                         )
                     )
+                print(
+                    len(self.interference_counts),
+                    self.interference_counts[0 : self.START_MEM],
+                    self.interference_counts[self.START_MEM :],
+                )
             if inter_flag > 0:
                 total_inters += inter_flag
                 inst_inters += inter_flag
@@ -362,6 +394,11 @@ class NeuroidalModel:
                     print(
                         "Average interference rate: ",
                         total_inters / len(self.memory_bank),
+                    )
+                    print(
+                        len(self.interference_counts),
+                        self.interference_counts[0 : self.START_MEM],
+                        self.interference_counts[self.START_MEM :],
                     )
                     if vis:
                         self._visualize(
