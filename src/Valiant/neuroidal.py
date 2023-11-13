@@ -5,6 +5,7 @@ from numpy.random import *
 import graph_tool.all as gt
 import matplotlib.pyplot as plt
 import shutil
+import time
 
 
 seed(42)
@@ -111,6 +112,8 @@ class NeuroidalModel:
 
         self.eprop_fired.a = 0
         self.eprop_weight.a = self.T / (self.k_adj * self.k)
+
+        self.JOIN_set = set()
 
         return self
 
@@ -249,6 +252,43 @@ class NeuroidalModel:
                     self.interference_counts[i] += 1
                     for v in inter:
                         self.vprop_memories[v] += 1
+
+        # Updating weights after interference
+        # 0. Initialize list of JOIN edges
+        # 1. Incoming edge from A/B to C: Add to list of JOIN edges
+        # 2. Incoming edge from elsewhere to C: decrease weight by 1/number of such edges
+        # 3. All other edges not in JOIN list: increase weight by 1/number of such edges
+        penalty = self.interference_counts[len(self.interference_counts) - 1]
+        if self.update and len(self.memory_bank) > self.START_MEM:
+            # Counting run
+            decrease_edges = 0
+            for v in C:
+                for edge in self.g.vertex(v).in_edges():
+                    if (
+                        edge.source() in self.memory_bank[A_index]
+                        or edge.source() in self.memory_bank[B_index]
+                    ):
+                        self.JOIN_set.add(edge)
+                    else:
+                        decrease_edges += 1
+
+            # decrement = 1 * penalty / decrease_edges
+            decrement = 1 - 1 / self.N
+            # increment = 1 / (self.g.num_edges() - decrease_edges - len(self.JOIN_set))
+            increment = 1 + 1 / self.N
+            # double_decrement = decrement + increment
+            # print("updates: ", -1 * decrement, increment, -1 * double_decrement)
+            # self.eprop_weight.a += increment
+            # Update run
+            for v in C:
+                for edge in self.g.vertex(v).in_edges():
+                    if edge in self.JOIN_set:
+                        # self.eprop_weight[edge] *= increment
+                        continue
+                    else:
+                        self.eprop_weight[edge] *= decrement ** max(
+                            1, self.vprop_memories[v]
+                        )
         return sum
 
     # Vectorized JOIN function
@@ -284,7 +324,8 @@ class NeuroidalModel:
 
         return inter, len(memory_C)
 
-    def simulate(self, vis=False):
+    def simulate(self, vis=False, update=False):
+        self.update = update
         i, j = np.meshgrid(
             np.arange(len(self.memory_bank)), np.arange(len(self.memory_bank))
         )
@@ -326,8 +367,10 @@ class NeuroidalModel:
             )
             self.first_join = True
 
+        t1 = time.time()
         for i in range(len(self.memory_bank)):
             total_inters += self._interference_check(i, i, self.memory_bank[i])
+        print("Finished checking starting inter in " + str(t1 - time.time()))
 
         print(total_inters)
 
