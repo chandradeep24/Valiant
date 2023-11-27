@@ -92,7 +92,6 @@ We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all 
     Given a vertex set $V$ with $n$ vertices and two subsets $U,W$ of respective sizes $r_u,r_w$, the probability that $U$ $k$-interferes with $W$, denoted by $Y$, is the tail distribution or survival function of $Y$ at $\left\lceil \frac{r_w}{k} \right\rceil$, or simply $\bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)$.
 \end{lemma}
 \begin{proof}
-    
     The probability that $U$ $k$-interferes with $W$ is 
     \begin{equation}
         \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \mathbb{P}(Y=y) = 1 - \sum_{y = 0}^{\left\lceil \frac{r_w}{k} \right\rceil} \mathbb{P}(Y=y) = 1 - \mathbb{P}\left(Y\leq \left\lceil \frac{r_w}{k} \right\rceil\right) = \mathbb{P}\left(Y > \left\lceil \frac{r_w}{k} \right\rceil\right) = \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right).
@@ -101,10 +100,16 @@ We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all 
 
 \begin{lemma}
     \label{lemma:tail-expectation}
-        If $r_u, r_w$ are drawn from a distribution with mean $r$, then the expected value of the tail distribution of $Y \sim Hypergeometric(n, r_u, y)$, $\bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)$ is $$placeholder$$
+        If \begin{enumerate}
+            \item $\mathbb{E}[r_u] = \mathbb{E}[r_w] = r$
+            \item $r_u, r_w \in [r-\delta,r+\delta]$ for some $\delta \in \Z$
+            \item $n > kr^2/r_w$
+            \item $Y \sim Hypergeometric(n, r_u, y)$
+        \end{enumerate} then $$\mathbb{E} \left( \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right) \right) \ge \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+        \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}$$
     \end{lemma}
     \begin{proof}
-        Observe that
+        Note that . Then observe that
         \begin{equation}
         \begin{split}
             \mathbb{E} \left( \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right) \right) &=
@@ -112,7 +117,7 @@ We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all 
             \left(
                 \frac
                 {
-                    \left(\frac{r_u}{y}\right)^{y} \left(\frac{(n-r_u)}{r_w - y}\right)^{r_w-y}
+                    \left(\frac{r_u}{y}\right)^{y} \left(\frac{n-r_u}{r_w - y}\right)^{r_w-y}
                 }
                 {
                     \left(\frac{n}{r_w}\right)^{r_w}
@@ -121,18 +126,24 @@ We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all 
             \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w}
                 \frac
                 {
-                    \left(\frac{r}{y}\right)^{y} \left(\frac{(n-r)}{r - y}\right)^{r_w-y}
+                    \left(\frac{r}{y}\right)^{y} \left(\frac{n-r}{r - y}\right)^{r_w-y}
                 }
                 {
                     \left(\frac{n}{r}\right)^{r_w}
-                }  
+                } 
+                \\ &=
+                \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w}
+                    \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r_w}
+                \\ &\ge
+                \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+                    \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}
         \end{split}
     \end{equation}
     \end{proof}
 
 \section{Capacity Results}
 
-\begin{definition} (\textbf{(\textit{r,T,k})-Subgraph Capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the \textit{expected maximum} number of subgraphs of size $r$ that can be collected subject to the constraint that for any randomly picked subgraph $U$, 
+\begin{definition} (\textbf{(\textit{r,T,k})-Subgraph Capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the \textit{maximum} number of subgraphs of expected size $r$ that can be collected subject to the constraint that for any randomly picked subgraph $U$, 
 \begin{equation}
 \label{equ:cap-bound}
     \E[X] \le T
@@ -184,10 +195,21 @@ The $(r,T,k)$-subgraph capacity of $V$ is the largest integer $M$ that satisfies
 
 \subsection{Capacity for Expected $r$-sized Subgraphs}
 
+\begin{definition} (\textbf{Expected (\textit{$r,T,k,\delta$})-Subgraph Capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the expected \textit{$(r,T,k,delta)$-subgraph capacity} of $V$ is the \textit{maximum} number of subgraphs that can be picked subject to the conditions that for any randomly picked subgraph $U$ with size $r'$,
+    \begin{enumerate}
+        \item $\mathbb{E}[r'] = r$
+        \item $r' \in [r-\delta,r+\delta]$
+        \item $n > kr^2/r'$
+        \item \label{equ:cap-bound-expected}$E[X] \le T$ where $X$ is the number of interferences caused due to picking $U$. 
+    \end{enumerate}
+    \end{definition}
+
+
 \begin{theorem}
-    Given a vertex set $V$ with $n$ vertices, the $(\E[r],T,k)$-subgraph capacity of $V$ is 
+    Given a vertex set $V$ with $n$ vertices, the expected $(r,T,k,\delta)$-subgraph capacity of $V$ is 
     \begin{equation*}
-        \left\lceil \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) + \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right)\Biggr) \right\rceil.
+        \left\lceil \frac{T}{\sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+        \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}} + 1 \right\rceil.
     \end{equation*}
 \end{theorem}
 
@@ -205,17 +227,35 @@ The $(r,T,k)$-subgraph capacity of $V$ is the largest integer $M$ that satisfies
     \frac{1}{M} \sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) + \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right) \Biggr).
     $$
 
-\noindent From inequality \ref{equ:cap-bound}, we have 
+\noindent From inequality \ref{equ:cap-bound-expected}, we have 
 
 \begin{equation*}
       \frac{1}{M} \sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) + \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right) \Biggr)  \le T 
 \end{equation*}
 \noindent which implies
 \begin{equation}
-\label{equ:cap-expected-r}      
+\label{equ:cap-r}      
        M \geq \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) + \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right)\Biggr). 
 \end{equation}
-The $(\E[r],T,k)$-subgraph capacity of $V$ is the smallest integer $M$ that satisfies inequality \ref{equ:cap-expected-r}.
+Taking the expectation on both sides and using lemma \ref{lemma:tail-expectation} we get
+\begin{equation}
+    \begin{split}
+           \mathbb{E}[M] &\geq \mathbb{E} \left(\frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) + \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right)\Biggr) \right) \\&= 
+           \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le \mathbb{E}[M], i \ne j}  \Biggl( \mathbb{E} \left( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) \right) + \mathbb{E} \left( \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right) \right)\Biggr) \\
+           &\ge
+           \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le \mathbb{E}[M], i \ne j}  \Biggl( 2 \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+           \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}\Biggr) \\
+           &=\frac{1}{T} \frac{\mathbb{E}[M](\mathbb{E}[M]-1)}{2} \Biggl( 2 \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+           \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}\Biggr) 
+    \end{split}
+    \end{equation}
+which implies 
+\begin{equation}
+    \label{equ:cap-r-expected}     
+    \mathbb{E} [M] \le \frac{T}{\sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+    \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}} + 1
+\end{equation}
+The expected $(r,T,k,\delta)$-subgraph capacity of $V$ is the largest integer that satisfies inequality \ref{equ:cap-r-expected}.
     
 \end{proof}
 
