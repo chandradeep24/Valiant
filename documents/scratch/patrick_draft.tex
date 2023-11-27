@@ -240,19 +240,19 @@ The $(r,T,k)$-subgraph capacity of $V$ is the largest integer $M$ that satisfies
 Taking the expectation on both sides and using lemma \ref{lemma:tail-expectation} we get
 \begin{equation}
     \begin{split}
-           \mathbb{E}[M] &\geq \mathbb{E} \left(\frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) + \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right)\Biggr) \right) \\&= 
-           \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le \mathbb{E}[M], i \ne j}  \Biggl( \mathbb{E} \left( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) \right) + \mathbb{E} \left( \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right) \right)\Biggr) \\
+           M = \mathbb{E}[M] &\geq \mathbb{E} \left(\frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) + \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right)\Biggr) \right) \\ &= 
+           \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \mathbb{E} \left( \bar{F}_Y\left(\left\lceil \frac{r_j}{k} \right\rceil\right) \right) + \mathbb{E} \left( \bar{F}_Y\left(\left\lceil \frac{r_i}{k} \right\rceil\right) \right)\Biggr) \\
            &\ge
-           \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le \mathbb{E}[M], i \ne j}  \Biggl( 2 \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+           \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( 2 \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
            \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}\Biggr) \\
-           &=\frac{1}{T} \frac{\mathbb{E}[M](\mathbb{E}[M]-1)}{2} \Biggl( 2 \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+           &=\frac{1}{T} \frac{M(M-1)}{2} \Biggl( 2 \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
            \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}\Biggr) 
     \end{split}
     \end{equation}
 which implies 
 \begin{equation}
     \label{equ:cap-r-expected}     
-    \mathbb{E} [M] \le \frac{T}{\sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+    M \le \frac{T}{\sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
     \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}} + 1
 \end{equation}
 The expected $(r,T,k,\delta)$-subgraph capacity of $V$ is the largest integer that satisfies inequality \ref{equ:cap-r-expected}.
