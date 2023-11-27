@@ -99,6 +99,37 @@ We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all 
     \end{equation}
 \end{proof}
 
+\begin{lemma}
+    \label{lemma:tail-expectation}
+        If $r_w$ is drawn from a distribution with mean $r$, then the expected value of the tail distribution of $Y \sim Hypergeometric(n, r_u, y)$, $\bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)$ is $$placeholder$$
+    \end{lemma}
+    \begin{proof}
+        Observe that
+        \begin{equation}
+        \begin{split}
+            \mathbb{E} \left( \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right) \right) &=
+            \mathbb{E} \left( \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \mathbb{P}(Y=y) \right) \\ &= \mathbb{E}  \left( \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}} \right) \\ &=  \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \mathbb{E} \left(\frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}  \right) \\ &\ge \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \mathbb{E} 
+            \left(
+                \frac
+                {
+                    \left(\frac{r_u}{y}\right)^{y} \left(\frac{(n-r_u)}{r_w - y}\right)^{r_w-y}
+                }
+                {
+                    \left(\frac{n}{r_w}\right)^{r_w}
+                }  
+            \right) \\ &= 
+            \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w}
+                \frac
+                {
+                    \left(\frac{r}{y}\right)^{y} \left(\frac{(n-r)}{r - y}\right)^{r_w-y}
+                }
+                {
+                    \left(\frac{n}{r}\right)^{r_w}
+                }  
+        \end{split}
+    \end{equation}
+    \end{proof}
+
 \section{Capacity Results}
 
 \begin{definition} (\textbf{(\textit{r,T,k})-Subgraph Capacity}) Given a vertex set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subgraph capacity} of $V$ is the \textit{expected maximum} number of subgraphs of size $r$ that can be collected subject to the constraint that for any randomly picked subgraph $U$, 
@@ -114,39 +145,39 @@ where $X$ is the number of interferences caused due to picking $U$.
 \begin{theorem}
     Given a vertex set $V$ with $n$ vertices and the propery that every generated subgraph will have size exactly $r$, the $(r,T,k)$-subgraph capacity of $V$ is 
     \begin{equation*}
-        \left\lfloor \frac{T}{\bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)} + 1 \right\rfloor.
+        \left\lfloor \frac{T}{\bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right)} + 1 \right\rfloor.
     \end{equation*}
 \end{theorem}
 
 \begin{proof}
-    Suppose we have $M$ subgraphs in the collection. Pick an arbitrary subgraph $U$. From lemma \ref{lemma:k-int-prob}, we know that the probability of $U$ $k$-interfering with another subgraph is $\bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)$. Since there are $M-1$ other subgraphs, the expected number of $k$-interferences caused by picking $U$ is $(M-1) \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)$. \\
+    Suppose we have $M$ subgraphs in the collection. Pick an arbitrary subgraph $U$. From lemma \ref{lemma:k-int-prob}, we know that the probability of $U$ $k$-interfering with another subgraph is $\bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right)$. Since there are $M-1$ other subgraphs, the expected number of $k$-interferences caused by picking $U$ is $(M-1) \bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right)$. \\
 
 \noindent From inequality \ref{equ:cap-bound}, we have 
 
     \begin{equation}
     \label{equ:cap-exact-r}
-        (M-1) \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right) \le T \implies M \le \frac{T}{\bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)} + 1.
+        (M-1) \bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right) \le T \implies M \le \frac{T}{\bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right)} + 1.
     \end{equation}
     The $(r,T,k)$-subgraph capacity of $V$ is the largest integer $M$ that satisfies inequality \ref{equ:cap-exact-r}.
 \end{proof}
 
 \begin{proof}[Alternate proof]
-    Suppose we have $M$ subgraphs in the collection. Pick two subgraphs $U,W$. From lemma \ref{lemma:k-int-prob}, we know that the probability of $U$ $k$-interfering with another subgraph is $\bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)$. Since all subgraphs have the same size, by corollary \ref{collorary:k-int-equals} this becomes the probability that $U,W$ pair will cause exactly 2 $k$-interferences. So the expected number of interferences caused by one pair is
+    Suppose we have $M$ subgraphs in the collection. Pick two subgraphs $U,W$. From lemma \ref{lemma:k-int-prob}, we know that the probability of $U$ $k$-interfering with another subgraph is $\bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right)$. Since all subgraphs have the same size, by corollary \ref{collorary:k-int-equals} this becomes the probability that $U,W$ pair will cause exactly 2 $k$-interferences. So the expected number of interferences caused by one pair is
     $$
-    2\bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right).
+    2\bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right).
     $$
     We know that there are $\binom{M}{2} = M(M-1)/2$ such pairings so the expected number of total interferences is
     $$
-    2 \cdot \frac{M(M-1)}{2} \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)  =  M(M-1) \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right). 
+    2 \cdot \frac{M(M-1)}{2} \bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right)  =  M(M-1) \bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right). 
     $$
     Since there are $M$ subgraphs, the expected number of interferences by picking one subgraph is
     $$
-    \frac{M(M-1)}{M} \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)  = (M-1) \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right).
+    \frac{M(M-1)}{M} \bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right)  = (M-1) \bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right).
     $$
     From inequality \ref{equ:cap-bound}, we have 
 
     \begin{equation*}
-        (M-1) \bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right) \le T \implies M \le \frac{T}{\bar{F}_Y\left(\left\lceil \frac{r_w}{k} \right\rceil\right)} + 1.
+        (M-1) \bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right) \le T \implies M \le \frac{T}{\bar{F}_Y\left(\left\lceil \frac{r}{k} \right\rceil\right)} + 1.
     \end{equation*}
 The $(r,T,k)$-subgraph capacity of $V$ is the largest integer $M$ that satisfies inequality \ref{equ:cap-exact-r}.
 \end{proof}
