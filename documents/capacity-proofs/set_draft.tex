@@ -39,9 +39,7 @@
 \begin{document}
  \maketitle
  
-In this article, we explore the notion of \textit{interference} of randomly shared items between sets within a universe. We define and generalize our probabilistic framework as a result of the hypergeometric distribution, and then arrive at results regarding the \textit{capacity} of the universe based on those notions of interference. \\
-
-\textbf{TODO:} Confirm if this simplification to work with general sets is valid.
+In this article, we explore the notion of \textit{interference} of randomly shared items between sets within a universe. We define and generalize our probabilistic framework as a result of the hypergeometric distribution, and then arrive at results regarding the \textit{capacity} of the universe based on those notions of interference.
 
 \section{Basic Interference Framework}
 
@@ -67,7 +65,7 @@ In this article, we explore the notion of \textit{interference} of randomly shar
     \begin{equation}
         \mathbb{P}(Y=y) = \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}.
     \end{equation}
-    This follows from the fact that given the first vector $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second vector in $\binom{r_u}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r_u$ indices corresponding to the 0's in the first vector with $r_w-y$ 1's in $\binom{n-r_u}{r_w-y}$ ways. Finally we divide by the total number of possible subsets $\binom{n}{r_w}$. For brevity, we then use Vandermonde's identity to realize this probability as a result of the hypergeometric distribution, with $Y \sim Hypergeometric(n, r_u, y)$.
+    This follows from the fact that given the first vector $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second vector in $\binom{r_u}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r_u$ indices corresponding to the 0's in the first vector with $r_w-y$ 1's in $\binom{n-r_u}{r_w-y}$ ways. Finally we divide by the total number of possible subsets $\binom{n}{r_w}$. For simplicity, we then use Vandermonde's identity to realize this probability as a result of the hypergeometric distribution, with $Y \sim Hypergeometric(n, r_u, y)$.
 \end{proof}
 
 \section{Generalizing Interference for $k$ Instances}
@@ -92,14 +90,13 @@ We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all 
     Given a set $V$ with $n$ items and two proper subsets $U,W$ of respective sizes $r_u,r_w$, the probability that $U$ $k$-interferes with $W$, denoted by $Y$, is the tail distribution of $Y$ at $\left\lfloor \frac{r_w}{k} \right\rfloor$, or simply $\bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right)$.
 \end{lemma}
 \begin{proof}
-    We know that the minimum number of $k$-interferences possible is $\left\lceil \frac{r_w}{k} \right\rceil$. We can then, for brevity, show the probability that $U$ $k$-interferes with $W$ is simply
+    We know that the minimum number of $k$-interferences possible is $\left\lceil \frac{r_w}{k} \right\rceil$. We can then, for brevity, show the probability that $U$ $k$-interferes with $W$ is
     \begin{equation}
         \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \mathbb{P}(Y=y) = \mathbb{P}\left(Y \geq \left\lceil \frac{r_w}{k} \right\rceil\right) = \mathbb{P}\left(Y > \left\lfloor \frac{r_w}{k} \right\rfloor\right) = \bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right).
     \end{equation}
 \end{proof}
 
-\textbf{TODO:} Confirm whether we can simply flip the ceiling function to a floor function here, or that we need to subtract 1 from the ceiling function here. Recall that $\bar{F}_{X}(x) = \mathbb{P}(X > x)$ and that $\mathbb{P}(Y \geq y) \neq \mathbb{P}(Y > y)$ because $Y$ is discrete. 
-
+\textbf{TODO:} Maybe explain the following assumptions made here:   
 \begin{lemma}
     \label{lemma:tail-expectation}
         If \begin{enumerate}
@@ -107,11 +104,12 @@ We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all 
             \item $r_u, r_w \in [r-\delta,r+\delta]$ for some $\delta \in \Z$,
             \item $n > kr^2/r_w$,
             \item $Y \sim Hypergeometric(n, r_u, y)$,
-        \end{enumerate} then we observe that $$\mathbb{E} \left[ \bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right) \right] \ge \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+        \end{enumerate}      
+then we observe that $$\mathbb{E} \left[ \bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right) \right] \ge \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
         \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}.$$
     \end{lemma}
     \begin{proof}
-        Given our assumptions, we observe that
+        Given our assumptions , we observe that
         \begin{equation}
         \begin{split}
             \mathbb{E} \left[\bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right) \right] &=
@@ -210,7 +208,7 @@ The $(r,T,k)$-subset capacity of $V$ is the largest integer $M$ that satisfies i
 \begin{theorem}
     Given a set $V$ with $n$ items, the expected $(r,T,k,\delta)$-subset capacity of $V$ is 
     \begin{equation*}
-        \left\lfloor \frac{T}{\mathbb{E} \left[\bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)\right]} + 1 \right\rfloor.
+        \left\lfloor \frac{T}{\sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta} \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}} + 1 \right\rfloor.
     \end{equation*}
 \end{theorem}
 
@@ -223,7 +221,6 @@ The $(r,T,k)$-subset capacity of $V$ is the largest integer $M$ that satisfies i
     $$
     \sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j} \Biggl( \bar{F}_Y\left(\left\lfloor \frac{r_j}{k} \right\rfloor\right) + \bar{F}_Y\left(\left\lfloor \frac{r_i}{k} \right\rfloor\right) \Biggr).
     $$
-\textbf{TODO:} In trying to generalize this to work with general sets, is this sum neccessary? Or does it just need to be changed? \\
 
 \noindent Since there are $M$ subsets, the expected number of interferences by picking one subset is
     $$
@@ -249,15 +246,16 @@ Taking the expectation on both sides and using lemma \ref{lemma:tail-expectation
            &\ge
            \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( 2 \cdot \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
            \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}\Biggr) \\
-           &\stackrel{?}{=}\frac{1}{T} \frac{M(M-1)}{2} \Biggl( 2 \cdot \mathbb{E} \left[ \bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right) \right]\Biggr),
+           &=\frac{1}{T} \frac{M(M-1)}{2} \Biggl( 2 \cdot \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+           \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}\Biggr),
     \end{split}
     \end{equation} \\
-(\textbf{TODO:} Confirm if the final statement in equation \ref{equ:cap-r-2} is valid.) \\
+(\textbf{TODO:} For simplification maybe argue that for small $\delta$, the summation is approximately equal to $\mathbb{E} \left[\bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)\right]$.) \\
 
-which implies 
+\noindent which implies 
 \begin{equation}
     \label{equ:cap-r-expected}     
-    M \le \frac{T}{\mathbb{E} \left[\bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)\right]} + 1.
+    M \le \frac{T}{\sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta} \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}} + 1.
 \end{equation}
 The expected $(r,T,k,\delta)$-subset capacity of $V$ is the largest integer that satisfies inequality \ref{equ:cap-r-expected}.
     
