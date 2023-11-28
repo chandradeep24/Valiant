@@ -1,0 +1,279 @@
+\documentclass[10pt]{extarticle}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{afterpage}
+\usepackage{amsthm}
+\usepackage[margin = 0.5in]{geometry}
+\usepackage{fancyhdr}
+\usepackage{framed}
+\usepackage{enumitem}
+\usepackage{stmaryrd}
+\usepackage{multirow}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\e}{\epsilon}
+\renewcommand\labelitemi{-}
+\newcommand*\interior[1]{\mathring{#1}}
+\newcommand*\closure[1]{\overline{#1}}
+\DeclareMathOperator{\im}{Im}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem*{claim}{Claim}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+
+\title{\textbf{Expected Subset Capacity \\ (Draft)}}
+\author{Chandradeep Chowdhury \\ Patrick Perrine}
+\date{\today}
+
+\begin{document}
+ \maketitle
+ 
+In this article, we explore the notion of \textit{interference} of randomly shared items between sets within a universe. We define and generalize our probabilistic framework as a result of the hypergeometric distribution, and then arrive at results regarding the \textit{capacity} of the universe based on those notions of interference. \\
+
+\textbf{TODO:} Confirm if this simplification to work with general sets is valid.
+
+\section{Basic Interference Framework}
+
+\begin{definition}
+    (\textbf{Interference}) Given two sets $U, W$, we say $U$ \textit{interferes} with $W$ if 
+    \begin{equation}
+        |U \cap W| \ge |W|.
+    \end{equation}
+\end{definition}
+
+\begin{lemma}
+	Given a set $V$ with $n$ items and two proper subsets $U,W$ of respective sizes $r_u,r_w$, the probability of an interference between $U$ and $W$, denoted as $Y$, follows a hypergeometric distribution with $Y \sim Hypergeometric(n, r_u, y)$.
+\end{lemma}
+\begin{proof}
+	If $V = \{v_1,...,v_n\}$, we can represent a subset $U$ as a Boolean vector $u$ of length $n$ defined by
+    $$
+    u_i = \begin{cases}
+        1 & \text{if } v_i \in U \\
+        0 & \text{if } v_i \notin U.
+    \end{cases}
+    $$
+    With this representation, $U,W$ intersect at the indices where both Boolean vectors $u, w$ have a $1$. Let $Y$ be a discrete random variable denoting the number of indices where both $u, w$ have a 1. Then 
+    \begin{equation}
+        \mathbb{P}(Y=y) = \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}.
+    \end{equation}
+    This follows from the fact that given the first vector $U$, we already know where the 1's are located. We can pick the $y$ intersecting 1's for the second vector in $\binom{r_u}{y}$ ways implicitly placing 0's in the remaining spots. We then fill the remaining $n-r_u$ indices corresponding to the 0's in the first vector with $r_w-y$ 1's in $\binom{n-r_u}{r_w-y}$ ways. Finally we divide by the total number of possible subsets $\binom{n}{r_w}$. For brevity, we then use Vandermonde's identity to realize this probability as a result of the hypergeometric distribution, with $Y \sim Hypergeometric(n, r_u, y)$.
+\end{proof}
+
+\section{Generalizing Interference for $k$ Instances}
+
+\begin{definition}
+    (\textbf{\textit{k}-Interference}) Given two sets $U, W$, and for some $k \in (0,|W|]$, we say $U$ $k-$\textit{interferes} with $W$ if 
+    \begin{equation}
+        |U \cap W| \ge  \frac{|W|}{k}.
+    \end{equation}
+\end{definition}
+
+\begin{corollary}
+\label{collorary:k-int-equals}
+    If $|U| = |W|$, then $U$ $k$-interferes with $W$ if and only if $W$ $k$-interferes with $U$.
+\end{corollary}
+
+We restrict the upper range of $k$ to $|W|$ for convenience, as beyond that all values of $\frac{|W|}{k}$ will be less than 1. If $\frac{|W|}{k} = 1$, we could arrive at a variation of the Hitting Set problem. 
+
+
+\begin{lemma}
+\label{lemma:k-int-prob}
+    Given a set $V$ with $n$ items and two proper subsets $U,W$ of respective sizes $r_u,r_w$, the probability that $U$ $k$-interferes with $W$, denoted by $Y$, is the tail distribution of $Y$ at $\left\lfloor \frac{r_w}{k} \right\rfloor$, or simply $\bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right)$.
+\end{lemma}
+\begin{proof}
+    We know that the minimum number of $k$-interferences possible is $\left\lceil \frac{r_w}{k} \right\rceil$. We can then, for brevity, show the probability that $U$ $k$-interferes with $W$ is simply
+    \begin{equation}
+        \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \mathbb{P}(Y=y) = \mathbb{P}\left(Y \geq \left\lceil \frac{r_w}{k} \right\rceil\right) = \mathbb{P}\left(Y > \left\lfloor \frac{r_w}{k} \right\rfloor\right) = \bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right).
+    \end{equation}
+\end{proof}
+
+\textbf{TODO:} Confirm whether we can simply flip the ceiling function to a floor function here, or that we need to subtract 1 from the ceiling function here. Recall that $\bar{F}_{X}(x) = \mathbb{P}(X > x)$ and that $\mathbb{P}(Y \geq y) \neq \mathbb{P}(Y > y)$ because $Y$ is discrete. 
+
+\begin{lemma}
+    \label{lemma:tail-expectation}
+        If \begin{enumerate}
+            \item $\mathbb{E}[r_u] = \mathbb{E}[r_w] = r$,
+            \item $r_u, r_w \in [r-\delta,r+\delta]$ for some $\delta \in \Z$,
+            \item $n > kr^2/r_w$,
+            \item $Y \sim Hypergeometric(n, r_u, y)$,
+        \end{enumerate} then we observe that $$\mathbb{E} \left[ \bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right) \right] \ge \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+        \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}.$$
+    \end{lemma}
+    \begin{proof}
+        Given our assumptions, we observe that
+        \begin{equation}
+        \begin{split}
+            \mathbb{E} \left[\bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right) \right] &=
+            \mathbb{E} \left[ \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \mathbb{P}(Y=y) \right] \\ &= \mathbb{E}  \left[ \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}} \right] \\ &=  \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \mathbb{E} \left[\frac{\binom{r_u}{y} \binom{n-r_u}{r_w-y}}{\binom{n}{r_w}}  \right] \\ &\ge \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w} \mathbb{E} 
+            \left[
+                \frac
+                {
+                    \left(\frac{r_u}{y}\right)^{y} \left(\frac{n-r_u}{r_w - y}\right)^{r_w-y}
+                }
+                {
+                    \left(\frac{n}{r_w}\right)^{r_w}
+                }  
+            \right] \\ &= 
+            \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w}
+                \frac
+                {
+                    \left(\frac{r}{y}\right)^{y} \left(\frac{n-r}{r - y}\right)^{r_w-y}
+                }
+                {
+                    \left(\frac{n}{r}\right)^{r_w}
+                } 
+                \\ &=
+                \sum_{y = \left\lceil \frac{r_w}{k} \right\rceil}^{r_w}
+                    \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r_w}
+                \\ &\ge
+                \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+                    \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}.
+        \end{split}
+    \end{equation}
+    \end{proof}
+
+\section{Capacity Results}
+
+\begin{definition} (\textbf{(\textit{r,T,k})-Subset Capacity}) Given a set $V = \{v_1,...,v_n\}$, the \textit{$(r,T,k)$-subset capacity} of $V$ is the \textit{maximum} number of subsets of expected size $r$ that can be collected subject to the constraint that for any randomly picked subset $U$, 
+\begin{equation}
+\label{equ:cap-bound}
+    \E[X] \le T
+\end{equation}
+where $X$ is the number of interferences caused due to picking $U$. 
+\end{definition}
+
+\subsection{Capacity for Exactly $r$-sized Subsets}
+
+\begin{theorem}
+    Given a set $V$ with $n$ items and the property that every subset will have size exactly $r$, the $(r,T,k)$-subset capacity of $V$ is 
+    \begin{equation*}
+        \left\lfloor \frac{T}{\bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)} + 1 \right\rfloor.
+    \end{equation*}
+\end{theorem}
+
+\begin{proof}
+    Suppose we have $M$ subsets in the universe. Pick an arbitrary subset $U$. From lemma \ref{lemma:k-int-prob}, we know that the probability of $U$ $k$-interfering with another arbitrary subset $W$ is $\bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right)$. Since there are $M-1$ other subsets and we know $r_w = r$, the expected number of $k$-interferences caused by picking $U$ is $(M-1) \bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)$. \\
+
+\noindent From inequality \ref{equ:cap-bound}, we have 
+
+    \begin{equation}
+    \label{equ:cap-exact-r}
+        (M-1) \bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right) \le T \implies M \le \frac{T}{\bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)} + 1.
+    \end{equation}
+    The $(r,T,k)$-subset capacity of $V$ is the largest integer $M$ that satisfies inequality \ref{equ:cap-exact-r}.
+\end{proof}
+
+\begin{proof}[Alternate proof]
+    Suppose we have $M$ subsets in the universe. Pick two subsets $U,W$ without replacement. From lemma \ref{lemma:k-int-prob}, we know that the probability of $U$ $k$-interfering with another arbitrary subset $W$ is $\bar{F}_Y\left(\left\lfloor \frac{r_w}{k} \right\rfloor\right)$. Since we know all subsets have the same size, by corollary \ref{collorary:k-int-equals} this becomes the probability that $U,W$ pair will cause exactly 2 $k$-interferences. So the expected number of interferences caused by one pair is
+    $$
+    2\bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right).
+    $$
+    We know that there are $\binom{M}{2} = M(M-1)/2$ such pairings so the expected number of total interferences is
+    $$
+    2 \cdot \frac{M(M-1)}{2} \bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)  =  M(M-1) \bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right). 
+    $$
+    Since there are $M$ subsets, the expected number of interferences by choosing picking one subset is
+    $$
+    \frac{M(M-1)}{M} \bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right))  = (M-1) \bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right).
+    $$
+    From inequality \ref{equ:cap-bound}, we have 
+
+    \begin{equation*}
+        (M-1) \bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right) \le T \implies M \le \frac{T}{\bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)} + 1.
+    \end{equation*}
+The $(r,T,k)$-subset capacity of $V$ is the largest integer $M$ that satisfies inequality \ref{equ:cap-exact-r}.
+\end{proof}
+
+\subsection{Capacity for Expected $r$-sized Subsets}
+
+\begin{definition} (\textbf{Expected (\textit{$r,T,k,\delta$})-Subset Capacity}) Given a set $V = \{v_1,...,v_n\}$, the \textit{expected $(r,T,k,\delta)$-subset capacity} of $V$ is the \textit{maximum} number of subsets that can be picked subject to the conditions that for any randomly picked subset $U$ with size $r'$, such that
+    \begin{enumerate}
+        \item $\mathbb{E}[r'] = r$,
+        \item $r' \in [r-\delta,r+\delta]$,
+        \item $n > kr^2/r'$,
+        \item \label{equ:cap-bound-expected}$E[X] \le T$ where $X$ is the number of interferences caused due to picking $U$. 
+    \end{enumerate}
+    \end{definition}
+
+
+\begin{theorem}
+    Given a set $V$ with $n$ items, the expected $(r,T,k,\delta)$-subset capacity of $V$ is 
+    \begin{equation*}
+        \left\lfloor \frac{T}{\mathbb{E} \left[\bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)\right]} + 1 \right\rfloor.
+    \end{equation*}
+\end{theorem}
+
+\begin{proof}
+    Suppose we have $M$ subsets $U_1,...,U_M$ with sizes $r_1,...,r_M$. Pick two subsets $U_i,U_j$. From lemma \ref{lemma:k-int-prob}, we know that the expected number of interferences caused by this pair is
+    $$
+    \bar{F}_Y\left(\left\lfloor \frac{r_j}{k} \right\rfloor\right) + \bar{F}_Y\left(\left\lfloor \frac{r_i}{k} \right\rfloor\right).
+    $$
+    We then sum over all possible pairings to get the expected number of total interferences:
+    $$
+    \sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j} \Biggl( \bar{F}_Y\left(\left\lfloor \frac{r_j}{k} \right\rfloor\right) + \bar{F}_Y\left(\left\lfloor \frac{r_i}{k} \right\rfloor\right) \Biggr).
+    $$
+\textbf{TODO:} In trying to generalize this to work with general sets, is this sum neccessary? Or does it just need to be changed? \\
+
+\noindent Since there are $M$ subsets, the expected number of interferences by picking one subset is
+    $$
+    \frac{1}{M} \sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lfloor \frac{r_j}{k} \right\rfloor\right) + \bar{F}_Y\left(\left\lfloor \frac{r_i}{k} \right\rfloor\right) \Biggr).
+    $$
+
+\noindent From inequality \ref{equ:cap-bound-expected}, we have 
+
+\begin{equation*}
+      \frac{1}{M} \sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lfloor \frac{r_j}{k} \right\rfloor\right) + \bar{F}_Y\left(\left\lfloor \frac{r_i}{k} \right\rfloor\right) \Biggr)  \le T,
+\end{equation*}
+\noindent which implies
+\begin{equation}
+\label{equ:cap-r}      
+       M \geq \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lfloor \frac{r_j}{k} \right\rfloor\right) + \bar{F}_Y\left(\left\lfloor \frac{r_i}{k} \right\rfloor\right)\Biggr). 
+\end{equation}
+Taking the expectation on both sides and using lemma \ref{lemma:tail-expectation} we get
+\begin{equation}
+\label{equ:cap-r-2}
+    \begin{split}
+           M = \mathbb{E}[M] &\geq \mathbb{E} \left[\frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \bar{F}_Y\left(\left\lfloor \frac{r_j}{k} \right\rfloor\right) + \bar{F}_Y\left(\left\lfloor \frac{r_i}{k} \right\rfloor\right)\Biggr) \right] \\ &= 
+           \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( \mathbb{E} \left[ \bar{F}_Y\left(\left\lfloor \frac{r_j}{k} \right\rfloor\right) \right] + \mathbb{E} \left[ \bar{F}_Y\left(\left\lfloor \frac{r_i}{k} \right\rfloor\right) \right]\Biggr) \\
+           &\ge
+           \frac{1}{T}\sum_{(i,j) \in \Z\times\Z, 1 \le i,j \le M, i \ne j}  \Biggl( 2 \cdot \sum_{y = \left\lceil \frac{r-\delta}{k} \right\rceil}^{r-\delta}
+           \left(\frac{r^2 - ry}{ny-ry}\right)^{y} \left(\frac{nr-r^2}{nr-ny}\right)^{r-\delta}\Biggr) \\
+           &\stackrel{?}{=}\frac{1}{T} \frac{M(M-1)}{2} \Biggl( 2 \cdot \mathbb{E} \left[ \bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right) \right]\Biggr),
+    \end{split}
+    \end{equation} \\
+(\textbf{TODO:} Confirm if the final statement in equation \ref{equ:cap-r-2} is valid.) \\
+
+which implies 
+\begin{equation}
+    \label{equ:cap-r-expected}     
+    M \le \frac{T}{\mathbb{E} \left[\bar{F}_Y\left(\left\lfloor \frac{r}{k} \right\rfloor\right)\right]} + 1.
+\end{equation}
+The expected $(r,T,k,\delta)$-subset capacity of $V$ is the largest integer that satisfies inequality \ref{equ:cap-r-expected}.
+    
+\end{proof}
+
+\section{Conclusion}
+
+We happened upon these set-theoretic results when working with induced subgraphs intended for knowledge representation. One example of an application of our work could be that of the Neuroidal Model by Leslie Valiant, in which induced subgraphs are used as memories of a neural system within a computational neuroscience perspective.
+
+% The following theorem gives an idea of how much the total interference is increased by adding the Mth subgraph. We show that the number is higher than the expected number of interferences caused by adding the subgrap
+
+% \begin{theorem}
+%     Given a vertex set $V$ with $n$ vertices and a collection of $M-1$ subgraphs, the expected number of interferences added by adding a random subgraph $U$ with size $r$ is  
+%     \begin{equation*}
+%         \left\lfloor \frac{T}{\sum_{y = \left\lceil \frac{r}{k} \right\rceil}^{r}  \frac{\binom{r}{y} \binom{n-r}{r-y}}{\binom{n}{r}}} + 1 \right\rfloor
+%     \end{equation*}
+% \end{theorem}
+
+\end{document}
