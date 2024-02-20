@@ -1,126 +1,170 @@
-import gc, os, sys
-from math import comb
+import os
+import shutil
+import itertools
 import numpy as np
+from math import comb
 from numpy.random import *
 import graph_tool.all as gt
-import matplotlib.pyplot as plt
-import shutil
-import time
 
+rng = np.random.default_rng(seed=42)
 
-seed(42)
-np.random.seed(42)
-gt.seed_rng(42)
-
-
-"""TODO: fix issues and add more comments"""
-
-# _ indicates private function
-# public functions should return self to be composable
-
-
-def generate_color_by_value(value, cap=10):
-    value = min(max(value, 0), cap)
-    r = value / cap
-    color = [r, 0.0, 0.0]
-    return color
-
-
-abc_map = {"A": [1.0, 0.75, 0.8], "B": [0.0, 0.0, 1.0], "C": [0.0, 1.0, 0.0]}
-
+# TODO: Move all visualization functions to a separate source file
+# TODO: Investigate PostInterferenceUpdate() again or remove function
+# TODO: Investigate GreedyGenerateMemoryBank() again or remove function
 
 class NeuroidalModel:
-    def __init__(
-        self, N, D, T, k, k_adj, H, STOP, START_MEM, r_exp, F=2, new_mems_only=False
-    ):
-        self.N = N
-        self.D = D
-        self.T = T
+    def __init__(self, n, d, t, k, k_adj, L, F, H, S, r_approx, new_mems=False):
+        self.n = n
+        self.d = d
+        if n >= 10^5:
+            self.p = d / n
+        else:
+            self.p = d / (n - 1)
+        self.t = t
         self.k = k
         self.k_adj = k_adj
-        self.H = H
-        self.STOP = STOP
-        self.START_MEM = START_MEM
-        self.r_exp = r_exp
-        self.P = D / (N - 1)
+        self.k_m = k * k_adj
+        self.L = L
         self.F = F
+        self.H = H
+        self.S = []
+        self.r_approx = r_approx
+        self.track_only_new_memories = new_mems
 
-        self.track_only_new_memories = new_mems_only
-
-    # Experimental!!
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
     # n: number of nodes
     # p: probability of edge existing between two nodes
-    def create_gnp_graph(n: int, p: float) -> gt.Graph:
-        # relationship between m and p
-        m = int(p * (n * (n - 1)) / 2)
-        g = gt.Graph()
+    def create_gnp_graph(n: int, p: float, fast: bool) -> gt.Graph:
+        g = gt.Graph(directed=True)
         g.add_vertex(n)
-
-        prob = lambda r, s: p
-
-        # Edge generation
-        sources = np.random.randint(0, n - 1, m)
-        targets = np.random.randint(0, n - 1, m)
-
-        mask = sources != targets
-        edges = np.column_stack((sources[mask], targets[mask]))
-        g.add_edge_list(edges)
-
-        gt.random_rewire(g, model="erdos", edge_probs=prob)
-
+        if fast:
+            num_edges = rng.binomial(n*(n-1)/2, p)
+            sources = rng.integers(0, n, num_edges*2)
+            targets = rng.integers(0, n, num_edges*2)
+            mask = sources != targets # removes self-loops
+            g.add_edge_list(np.column_stack((sources[mask], targets[mask])))
+        else:
+            all_edges = itertools.permutations(range(n), 2)
+            for e in all_edges:
+                if rng.random() < p:
+                    g.add_edge(*e)
         return g
 
-    def create_graph(self):
-        self.g = gt.Graph()
-        self.g.add_vertex(self.N)
+    def initialize_mode(self, fast=True):
+        self.g = create_gnp_graph(self.n, self.p, fast)
 
-        self.vprop_fired = self.g.new_vertex_property("int")
-        self.vprop_memories = self.g.new_vertex_property("int")
-        self.vprop_n_memories = self.g.new_vertex_property("int")
-        self.vprop_fired_now = self.g.new_vertex_property("int")
-        self.vprop_weight = self.g.new_vertex_property("double")
-        self.vprop_threshold = self.g.new_vertex_property("double")
+        self.mode_T = g.new_vp("int")
+        self.mode_q = g.new_vp("int")
+        self.mode_f = g.new_vp("int")
+        self.mode_qq = g.new_ep("int")
+        self.mode_w = g.new_ep("double")
 
-        self.vprop_fired.a = 0
-        self.vprop_memories.a = 0
-        self.vprop_n_memories.a = 0
-        self.vprop_fired_now.a = 0
-        self.vprop_weight.a = 0.0
-        self.vprop_threshold.a = self.T
-
-        x, y = np.meshgrid(np.arange(self.N), np.arange(self.N))  # sparse=True)
-        mask = x != y
-        x = x[mask]
-        y = y[mask]
-        pairs = np.stack((x, y), axis=1)
-        print("Number of all possible edges:", pairs.shape[0])
-
-        z = np.random.default_rng().geometric(
-            p=self.P, size=((self.N * self.N) - self.N)
-        )
-        num_edges = (z == 1).sum()
-
-        index = np.random.default_rng().choice(
-            pairs.shape[0], size=int(num_edges), replace=False
-        )
-
-        self.g.add_edge_list(pairs[index])
-
-        self.eprop_fired = self.g.new_edge_property("int")
-        self.eprop_weight = self.g.new_edge_property("double")
-
-        self.eprop_fired.a = 0
-        self.eprop_weight.a = self.T / (self.k_adj * self.k)
-
-        self.JOIN_set = set()
+        self.mode_T.a = t
+        self.mode_q.a = 1
+        self.mode_f.a = 0
+        self.mode_qq.a = 1
+        self.mode_w.a = t / k_m
 
         return self
 
-    def _generate_adj_mat(self):
-        self.adjmat = gt.adjacency(self.g, self.eprop_weight)
-        # print(self.adjmat)
+    def sum_weights(s_i, fast=True):
+        if fast:
+            W = self.g.get_in_edges(s_i, [self.mode_w])[:,2]
+            F = np.array(self.g.get_in_neighbors(s_i, [self.mode_f])[:,1], 
+                                                                    dtype=bool)
+            return W[F].sum()
+        else:
+            w_i = 0
+            for s_ji in g.iter_in_edges(s_i):
+                if mode_f[s_ji[0]] == 1:
+                    w_i += mode_w[s_ji]
+            return w_i
+
+    def _delta(self, s_i, w_i):
+        if w_i > self.mode_T[s_i]:
+            self.mode_f[s_i] = 1
+            self.mode_q[s_i] = 2
         return self
+
+    def _lambda(self, s_i, w_i, s_ji, f_j):
+        if f_j == 1:
+            self.mode_qq[s_ji] = 2
+        return self
+
+    def update_graph(one_step=True):
+        C = []
+        for s_i in self.g.iter_vertices():
+            w_i = sum_weights(s_i, fast=True)
+            _delta(self, s_i, w_i)
+            if self.mode_q[s_i] == 2:
+                C.append(s_i)
+                if one_step:
+                    self.mode_f[s_i] = 0
+            if not one_step:
+                for s_ji in self.g.iter_in_edges(s_i):
+                    f_j = self.mode_f[s_ji[0]]
+                    _lambda(self, s_i, w_i, s_ji, f_j)
+        return C
+
+    def JOIN_one_step_shared(A, B):
+        for i in A + B:
+            self.mode_f[i] = 1
+        C = update_graph(one_step=True)
+        self.mode_f.a = 0
+        self.mode_q.a = 1
+        return C
+
+    def quick_JOIN(A, B):
+        self.mode_w.a = 0
+        for i in A + B:
+            self.mode_w.a[self.g.get_out_edges(i, 
+                [self.g.edge_index])[:,2]] = self.t / self.k_m
+        return self.g.get_vertices()[self.g.get_in_degrees(self.g.get_vertices(),
+                 eweight=self.mode_w) > self.t]
+
+    def interference_check(self, A_i, B_i, C):
+        sum = 0
+        for D_i in range(len(self.S)):
+            if D_i != A_i and D_i != B_i:
+                D = self.S[D_i]
+                if len(set(C) & set(D)) > (len(D) / 2):
+                    sum += 2
+        return sum
+     
+    """ 
+    For updating weights after interference
+        0. Initialize list of JOIN edges
+        1. Incoming edge from A/B to C: Add to list of JOIN edges
+        2. Incoming edge from elsewhere to C: decrease weight by 1/num of edges
+        3. All other edges not in JOIN list: increase weight by 1/num of edges
+    """
+    def _post_interference_update(self, A_i, B_i, C):
+        if len(self.S) > self.L:
+            JOIN_set = set()
+            # decrement = 1 - 1 / self.n
+            for v in C:
+                for edge in self.g.vertex(v).in_edges():
+                    if (
+                        edge.source() in self.S[A_i]
+                        or edge.source() in self.S[B_i]
+                    ):
+                        JOIN_set.add(edge)
+                    else:
+                        if edge not in JOIN_set:
+                            if self.vprop_memories[v] > 0:
+                                self.eprop_weight[edge] = 0
+                            # else:
+                            #     self.eprop_weight[edge] *= decrement ** max(
+                            #         1, self.vprop_memories[v]
+                            #     )
+
+        return sum
+
+    def generate_color_by_value(value, cap=10):
+        value = min(max(value, 0), cap)
+        r = value / cap
+        color = [r, 0.0, 0.0]
+        return color
 
     def _visualize(self, output_file_name):
         self.vprop_colors = self.g.new_vertex_property("vector<float>")
@@ -164,6 +208,9 @@ class NeuroidalModel:
         self.vprop_colors = self.g.new_vertex_property("vector<float>")
         self.vprop_text = self.g.new_vertex_property("string")
         self.eprop_colors = self.g.new_edge_property("vector<float>")
+        abc_map = {"A": [1.0, 0.75, 0.8],
+                    "B": [0.0, 0.0, 1.0],
+                    "C": [0.0, 1.0, 0.0]}
         for v in self.g.vertices():
             if v in A:
                 self.vprop_colors[v] = abc_map["A"]
@@ -193,30 +240,46 @@ class NeuroidalModel:
         )
         return self
 
-    def generate_memory_bank(self):
-        self.memory_bank = []
-        self.interference_counts = []
-        for i in np.arange(0, self.START_MEM):
-            memory_A = np.random.default_rng().choice(
-                np.arange(0, self.N - 1), size=self.r_exp
-            )
-            self.memory_bank.append(memory_A)
-            if not self.track_only_new_memories:
-                for v in memory_A:
-                    self.vprop_n_memories[v] += 1
+    def print_join_update(self, S_length, H_if, total_if, m_len, m_total):
+        print("Current Total Memories:", S_length)
+        print("Batch Average Memory Size:", int(m_len/self.H))
+        print("Running Average Memory Size:", 
+                int(m_total/(S_length-self.L)),"\n\n")
+        if self.n < 10^5:
+            print("Batch Interference Rate:", round(H_if/self.H, 6))
+            print("Running Average Int. Rate:", round(total_if/S_length, 6))
 
-        print(
-            "memory bank len:",
-            len(self.memory_bank),
-            "interference count len:",
-            len(self.interference_counts),
-        )
-        return self
+    def print_halt_msg(self, S_length, total_if, m_total):
+        r_obs = int(m_total/(S_length-self.L))
+        r_error = round(((self.r_approx - r_obs) / r_obs) * 100, 2)
+        print("-- End of Simulation (Halted) --\n")
+        print("Given: n=", self.n, "d=", self.d, "k=", self.k, "k_adj=", 
+                self.k_adj, "r_approx=", self.r_approx, "START_MEM=", self.L)
+        print("we halted Memory Formation at", 
+                self.F*100, "% Total Interference.\n")
+        print("Empirical Memory Size:", int(m_total/(S_length-self.L)))
+        print("Approximation Error of r:", r_error, "%")
+        print("Total Average Interference Rate:", round(total_if/S_length, 6))
+        print("Capacity:", self.L, "Initial Memories +", 
+                S_length-self.L, "JOIN Memories.")
+
+    def print_memorized_msg(self, S_length, m_total):
+        r_obs = int(m_total/(S_length-self.L))
+        r_error = round(((self.r_approx - r_obs) / r_obs) * 100, 2)
+        print("-- End of Simulation (Completed) --\n")
+        print("Given: n=", self.n, "d=", self.d, "k=", self.k, "k_adj=", 
+                self.k_adj, "r_approx=", self.r_approx, "START_MEM=", self.L)
+        print("We memorized all combinations of", self.L,"memories",
+                "\n","with less than", self.F*100, "% interference.\n")
+        print("Empirical Memory Size:", int(m_total/(S_length-self.L)))
+        print("Approximation Error of r:", r_error, "%")
+        print("Contains:", self.L, "Initial Memories +",
+                S_length-self.L, "JOIN Memories.")
 
     def greedy_generate_memory_bank(self):
-        self.memory_bank = []
+        self.memory_bank = self.S
 
-        divider = int(0.8 * self.START_MEM)
+        divider = int(0.8 * self.L)
 
         # random portion
         for i in np.arange(0, divider):
@@ -228,8 +291,8 @@ class NeuroidalModel:
                 self.vprop_n_memories[v] += 1
 
         # greedy portion
-        options = range(0, self.N)
-        for i in np.arange(divider, self.START_MEM):
+        options = range(0, self.n)
+        for i in np.arange(divider, self.L):
             options = sorted(options, key=lambda v: -1 * self.vprop_n_memories[v])
             memory_A = options[0 : self.r_exp]
             self.memory_bank.append(memory_A)
@@ -237,212 +300,73 @@ class NeuroidalModel:
                 self.vprop_n_memories[v] += 1
         return self
 
-    # Check for interference
-    def _interference_check(self, A_index, B_index, C):
-        sum = 0
-        c_position = len(self.interference_counts)
-        self.interference_counts.append(0)
-        for i in range(len(self.memory_bank)):
-            if i != A_index and i != B_index:
-                # print(type(C), type(i))
-                inter = list(set(C) & set(self.memory_bank[i]))
-                if len(inter) > len(self.memory_bank[i]) / self.F:
-                    sum += 2
-                    self.interference_counts[c_position] += 1
-                    self.interference_counts[i] += 1
-                    for v in inter:
-                        self.vprop_memories[v] += 1
-
-        # Updating weights after interference
-        # 0. Initialize list of JOIN edges
-        # 1. Incoming edge from A/B to C: Add to list of JOIN edges
-        # 2. Incoming edge from elsewhere to C: decrease weight by 1/number of such edges
-        # 3. All other edges not in JOIN list: increase weight by 1/number of such edges
-        if self.update and len(self.memory_bank) > self.START_MEM:
-            # decrement = 1 - 1 / self.N
-            for v in C:
-                for edge in self.g.vertex(v).in_edges():
-                    if (
-                        edge.source() in self.memory_bank[A_index]
-                        or edge.source() in self.memory_bank[B_index]
-                    ):
-                        self.JOIN_set.add(edge)
-                    else:
-                        if edge not in self.JOIN_set:
-                            if self.vprop_memories[v] > 0:
-                                self.eprop_weight[edge] = 0
-                            # else:
-                            #     self.eprop_weight[edge] *= decrement ** max(
-                            #         1, self.vprop_memories[v]
-                            #     )
-
-        return sum
-
-    # Vectorized JOIN function
-    def _JOIN_one_step_shared(self, i, j, output_directory):
-        self._generate_adj_mat()
-
-        memory_A = self.memory_bank[i]
-        memory_B = self.memory_bank[j]
-
-        state = np.zeros(self.adjmat.shape[0])
-        state[memory_A] = 1
-        state[memory_B] = 1
-
-        fired = np.heaviside((self.adjmat @ state) - 1, 1)
-
-        memory_C = np.nonzero(fired)[0]
-
-        if self.first_join and self.vis:
-            self._visualize_first_join(
-                memory_A,
-                memory_B,
-                memory_C,
-                os.path.join(output_directory, f"graph_first_join.png"),
-            )
-            self.first_join = False
-
-        for v in memory_C:
-            self.vprop_n_memories[v] += 1
-
-        # print((self.adjmat @ state) - 1, fired, memory_C)
-        inter = self._interference_check(i, j, memory_C)
-        self.memory_bank.append(memory_C)
-
-        return inter, len(memory_C)
-
-    def simulate(self, vis=False, update=False):
+    def simulate(self, fast=True, vis=False, update=False, verbose=False):
         self.update = update
-        i, j = np.meshgrid(
-            np.arange(len(self.memory_bank)), np.arange(len(self.memory_bank))
-        )
-        mask = i != j
-        i = i[mask]
-        j = j[mask]
-        gc.collect()
-        pairs = np.unique(np.sort(np.stack((i, j), axis=1)), axis=0)
-        np.random.shuffle(pairs)
+        m = 0
+        H_if = 0
+        m_len = 0
+        m_total = 0
+        total_if = 0
+        first_join = False
+        print("-- Start of Simulation --\n")
+        init_pairs = itertools.combinations(range(self.L), 2)
+        self.S = [rng.choice(np.arange(0,self.n - 1), size=self.r_approx)
+             for _ in range(self.L)]
 
-        total_inters = 0
-        ind = 0
-        inst_inters = 0
-        inst_len = 0
-
-        output_directory = f"../assets/neurons_{self.N}_degree_{self.D}_replication_{self.r_exp}_edge_weights_{self.k}_threshold_{self.T}_startmem_{self.START_MEM}"
-
-        self.first_join = False
-
-        self.vis = vis
-
+        output_directory = f"../assets/neurons_{self.n}_degree_{self.d}_replication_{self.r_approx}_edge_weights_{self.k}_threshold_{self.t}_startmem_{self.L}"
         if vis:
+            first_join = True
             if os.path.exists(output_directory):
                 shutil.rmtree(output_directory)
                 os.makedirs(output_directory)
             else:
                 os.makedirs(output_directory)
+            self._visualize(os.path.join(output_directory, 
+                    f"graph_{len(self.S)}_memories.png"))
+            self._visualize_n(os.path.join(output_directory, 
+                    f"graph_{len(self.S)}_n_memories.png"))
 
-            self._visualize(
-                os.path.join(
-                    output_directory, f"graph_{len(self.memory_bank)}_memories.png"
-                )
-            )
-
-            self._visualize_n(
-                os.path.join(
-                    output_directory, f"graph_{len(self.memory_bank)}_n_memories.png"
-                )
-            )
-            self.first_join = True
-
-        t1 = time.time()
-        for i in range(len(self.memory_bank)):
-            total_inters += self._interference_check(i, i, self.memory_bank[i])
-        print("Finished checking starting inter in " + str(t1 - time.time()))
-
-        print(total_inters)
-
-        for pair in pairs:
-            ind += 1
-            i = pair[0]
-            j = pair[1]
-            inter_flag, length = self._JOIN_one_step_shared(i, j, output_directory)
-            inst_len += length
-            if ind % self.H == 0:
-                print("Memories: ", len(self.memory_bank))
-                print("Instantaneous interference rate: ", inst_inters / self.H)
-                # print(
-                #     "Average interference rate: ", total_inters / len(self.memory_bank)
-                # )
-                print("Average size of memories created: ", inst_len / self.H, "\n\n")
-                inst_inters = 0
-                inst_len = 0
+        for A_i,B_i in init_pairs:
+            A = list(S[A_i])
+            B = list(S[B_i])
+            if fast:
+                C = quick_JOIN(A, B)
+            else:
+                C = JOIN_one_step_shared(A, B)
+            C_if = interference_check(self.S, A_i, B_i, C)
+            m += 1
+            S.append(C)
+            m_len += len(C)
+            m_total += len(C)
+            if first_join:
+                self._visualize_first_join(A, B, C,
+                    os.path.join(output_directory, f"graph_first_join.png"))
+            if m % self.H == 0::
+                if verbose:
+                    print_join_update(len(self.S), H_if,
+                                      total_if, m_len, m_total)
+                H_if = 0
+                m_len = 0
                 if vis:
-                    self._visualize(
-                        os.path.join(
-                            output_directory,
-                            f"graph_{len(self.memory_bank)}_memories.png",
-                        )
-                    )
-                    self._visualize_n(
-                        os.path.join(
-                            output_directory,
-                            f"graph_{len(self.memory_bank)}_n_memories.png",
-                        )
-                    )
-                print(
-                    len(self.interference_counts),
-                    self.interference_counts[0 : self.START_MEM],
-                    self.interference_counts[self.START_MEM :],
-                )
-            if inter_flag > 0:
-                total_inters += inter_flag
-                inst_inters += inter_flag
-                # if inst_inters / self.H > self.STOP:
-                if total_inters / len(self.memory_bank) > self.STOP:
-                    print(
-                        "Config: N=",
-                        self.N,
-                        " D=",
-                        self.D,
-                        " k=",
-                        self.k,
-                        " k_adj=",
-                        self.k_adj,
-                        " R=",
-                        self.r_exp,
-                        "START_MEM=",
-                        self.START_MEM,
-                    )
-                    print(
-                        "Halting memory formation at ",
-                        len(self.memory_bank),
-                        " memories due to more than ",
-                        self.STOP * 100,
-                        "percent average total interference",
-                    )
-                    print("Instantaneous interference rate: ", inst_inters / self.H)
-                    print(
-                        "Average interference rate: ",
-                        total_inters / len(self.memory_bank),
-                    )
-                    print(
-                        len(self.interference_counts),
-                        self.interference_counts[0 : self.START_MEM],
-                        self.interference_counts[self.START_MEM :],
-                    )
+                    self._visualize(os.path.join(output_directory,
+                            f"graph_{len(self.memory_bank)}_memories.png"))
+                    self._visualize_n(os.path.join(output_directory,
+                            f"graph_{len(self.memory_bank)}_n_memories.png"))
+            if C_if > 0:
+                H_if += C_if
+                total_if += C_if
+                if total_if/len(self.S) > self.F:
+                    print_halt_msg(self, len(self.S), total_if, m_total)
                     if vis:
-                        self._visualize(
-                            os.path.join(
-                                output_directory,
-                                f"graph_final_memories.png",
-                            )
-                        )
-                        self._visualize_n(
-                            os.path.join(
-                                output_directory,
-                                f"graph_final_n_memories.png",
-                            )
-                        )
-                    break
-
+                        self._visualize(os.path.join(output_directory,
+                                f"graph_final_memories.png"))
+                        self._visualize_n(os.path.join(output_directory,
+                                f"graph_final_n_memories.png"))
+                    return self
+        print_memorized_msg(self, len(self.S), m_total)
+        if vis:
+            self._visualize(os.path.join(output_directory,
+                f"graph_final_memories.png"))
+            self._visualize_n(os.path.join(output_directory,
+                f"graph_final_n_memories.png"))
         return self
