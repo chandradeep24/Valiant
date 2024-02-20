@@ -1,12 +1,10 @@
-# Valiant
+# Neuroidal Model Implementation
 
-Experiments on random graphs
+Experiments on random graph models primarily drawn from the following paper:
 
-## Instructions
+[Valiant, L. G. (2005). Memorization and Association on a Realistic Neural Model. *Neural Computation*, *17*, 527–555.](https://doi.org/10.1162/0899766053019890)
 
-Fork the repo before cloning. Submit pull requests to have your changes merged. Sync the fork periodically to pull changes.
-
-### Valiant Neuroidal Model
+## Basic Instructions
 
 1. Install miniconda or anaconda
 2. Start a terminal in the Valiant directory
