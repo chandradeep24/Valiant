@@ -125,35 +125,6 @@ class NeuroidalModel:
                 if len(set(C) & set(D)) > (len(D) / 2):
                     sum += 2
         return sum
-     
-    """ 
-    For updating weights after interference
-        0. Initialize list of JOIN edges
-        1. Incoming edge from A/B to C: Add to list of JOIN edges
-        2. Incoming edge from elsewhere to C: decrease weight by 1/num of edges
-        3. All other edges not in JOIN list: increase weight by 1/num of edges
-    """
-    def _post_interference_update(self, A_i, B_i, C):
-        if len(self.S) > self.L:
-            JOIN_set = set()
-            # decrement = 1 - 1 / self.n
-            for v in C:
-                for edge in self.g.vertex(v).in_edges():
-                    if (
-                        edge.source() in self.S[A_i]
-                        or edge.source() in self.S[B_i]
-                    ):
-                        JOIN_set.add(edge)
-                    else:
-                        if edge not in JOIN_set:
-                            if self.vprop_memories[v] > 0:
-                                self.eprop_weight[edge] = 0
-                            # else:
-                            #     self.eprop_weight[edge] *= decrement ** max(
-                            #         1, self.vprop_memories[v]
-                            #     )
-
-        return sum
 
     def generate_color_by_value(value, cap=10):
         value = min(max(value, 0), cap)
@@ -272,7 +243,6 @@ class NeuroidalModel:
                 S_length-self.L, "JOIN Memories.")
 
     def simulate(self, fast=True, vis=False, update=False, verbose=False):
-        self.update = update
         m = 0
         H_if = 0
         m_len = 0
