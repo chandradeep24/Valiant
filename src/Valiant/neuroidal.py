@@ -2,15 +2,10 @@ import os
 import shutil
 import itertools
 import numpy as np
-from math import comb
 from numpy.random import *
 import graph_tool.all as gt
 
 rng = np.random.default_rng(seed=42)
-
-# TODO: Move all visualization functions to a separate source file
-# TODO: Investigate PostInterferenceUpdate() again or remove function
-# TODO: Investigate GreedyGenerateMemoryBank() again or remove function
 
 class NeuroidalModel:
     def __init__(self, n, d, t, k, k_adj, L, F, H, S, r_approx, new_mems=False):
@@ -275,30 +270,6 @@ class NeuroidalModel:
         print("Approximation Error of r:", r_error, "%")
         print("Contains:", self.L, "Initial Memories +",
                 S_length-self.L, "JOIN Memories.")
-
-    def greedy_generate_memory_bank(self):
-        self.memory_bank = self.S
-
-        divider = int(0.8 * self.L)
-
-        # random portion
-        for i in np.arange(0, divider):
-            memory_A = np.random.default_rng().choice(
-                np.arange(0, self.N - 1), size=self.r_exp
-            )
-            self.memory_bank.append(memory_A)
-            for v in memory_A:
-                self.vprop_n_memories[v] += 1
-
-        # greedy portion
-        options = range(0, self.n)
-        for i in np.arange(divider, self.L):
-            options = sorted(options, key=lambda v: -1 * self.vprop_n_memories[v])
-            memory_A = options[0 : self.r_exp]
-            self.memory_bank.append(memory_A)
-            for v in memory_A:
-                self.vprop_n_memories[v] += 1
-        return self
 
     def simulate(self, fast=True, vis=False, update=False, verbose=False):
         self.update = update
