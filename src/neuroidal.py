@@ -60,19 +60,22 @@ class NeuroidalModel:
         self.mode_qq.a = 1
         self.mode_w.a = t / k_m
 
+        # TODO: Investigate if this property is required
+        self.vprop_memories = g.new_vp("int")
+        self.vprop_memories.a = 0
+
         return self
 
-    def sum_weights(s_i, fast=True):
+    def sum_weights(self, s_i, fast=True):
         if fast:
             W = self.g.get_in_edges(s_i, [self.mode_w])[:,2]
-            F = np.array(self.g.get_in_neighbors(s_i, [self.mode_f])[:,1], 
-                                                                    dtype=bool)
+            F = np.array(self.g.get_in_neighbors(s_i, [self.mode_f])[:,1], dtype=bool)
             return W[F].sum()
         else:
             w_i = 0
             for s_ji in g.iter_in_edges(s_i):
-                if mode_f[s_ji[0]] == 1:
-                    w_i += mode_w[s_ji]
+                if self.mode_f[s_ji[0]] == 1:
+                    w_i += self.mode_w[s_ji]
             return w_i
 
     def _delta(self, s_i, w_i):
@@ -86,10 +89,10 @@ class NeuroidalModel:
             self.mode_qq[s_ji] = 2
         return self
 
-    def update_graph(one_step=True):
+    def update_graph(self, one_step=True):
         C = []
         for s_i in self.g.iter_vertices():
-            w_i = sum_weights(s_i, fast=True)
+            w_i = sum_weights(self, s_i, fast=True)
             _delta(self, s_i, w_i)
             if self.mode_q[s_i] == 2:
                 C.append(s_i)
@@ -101,21 +104,19 @@ class NeuroidalModel:
                     _lambda(self, s_i, w_i, s_ji, f_j)
         return C
 
-    def JOIN_one_step_shared(A, B):
+    def JOIN_one_step_shared(self, A, B):
         for i in A + B:
             self.mode_f[i] = 1
-        C = update_graph(one_step=True)
+        C = update_graph(self, one_step=True)
         self.mode_f.a = 0
         self.mode_q.a = 1
         return C
 
-    def quick_JOIN(A, B):
+    def quick_JOIN(self, A, B):
         self.mode_w.a = 0
         for i in A + B:
-            self.mode_w.a[self.g.get_out_edges(i, 
-                [self.g.edge_index])[:,2]] = self.t / self.k_m
-        return self.g.get_vertices()[self.g.get_in_degrees(self.g.get_vertices(),
-                 eweight=self.mode_w) > self.t]
+            self.mode_w.a[self.g.get_out_edges(i, [self.g.edge_index])[:,2]] = self.t / self.k_m
+        return self.g.get_vertices()[self.g.get_in_degrees(self.g.get_vertices(), eweight=self.mode_w) > self.t]
 
     def interference_check(self, A_i, B_i, C):
         sum = 0
@@ -133,8 +134,8 @@ class NeuroidalModel:
         return color
 
     def _visualize(self, output_file_name):
-        self.vprop_colors = self.g.new_vertex_property("vector<float>")
-        self.vprop_text = self.g.new_vertex_property("string")
+        self.vprop_colors = self.g.new_vp("vector<float>")
+        self.vprop_text = self.g.new_v("string")
         for v in self.g.vertices():
             self.vprop_colors[v] = generate_color_by_value(self.vprop_memories[v])
             self.vprop_text[v] = str(self.vprop_memories[v])
@@ -151,13 +152,13 @@ class NeuroidalModel:
         return self
 
     def _visualize_n(self, output_file_name):
-        self.vprop_colors = self.g.new_vertex_property("vector<float>")
-        self.vprop_text = self.g.new_vertex_property("string")
+        self.vprop_colors = self.g.new_vp("vector<float>")
+        self.vprop_text = self.g.new_vp("string")
         for v in self.g.vertices():
             self.vprop_colors[v] = generate_color_by_value(
-                self.vprop_n_memories[v], cap=50
+                self.vprop_memories[v], cap=50
             )
-            self.vprop_text[v] = str(self.vprop_n_memories[v])
+            self.vprop_text[v] = str(self.vprop_memories[v])
         gt.graph_draw(
             self.g,
             pos=gt.fruchterman_reingold_layout(self.g),
@@ -171,9 +172,9 @@ class NeuroidalModel:
         return self
 
     def _visualize_first_join(self, A, B, C, output_file_name):
-        self.vprop_colors = self.g.new_vertex_property("vector<float>")
-        self.vprop_text = self.g.new_vertex_property("string")
-        self.eprop_colors = self.g.new_edge_property("vector<float>")
+        self.vprop_colors = self.g.new_vp("vector<float>")
+        self.vprop_text = self.g.new_vp("string")
+        self.eprop_colors = self.g.new_ep("vector<float>")
         abc_map = {"A": [1.0, 0.75, 0.8],
                     "B": [0.0, 0.0, 1.0],
                     "C": [0.0, 1.0, 0.0]}
@@ -262,36 +263,36 @@ class NeuroidalModel:
                 os.makedirs(output_directory)
             else:
                 os.makedirs(output_directory)
-            self._visualize(os.path.join(output_directory, 
+            self._visualize(self, os.path.join(output_directory, 
                     f"graph_{len(self.S)}_memories.png"))
-            self._visualize_n(os.path.join(output_directory, 
+            self._visualize_n(self, os.path.join(output_directory, 
                     f"graph_{len(self.S)}_n_memories.png"))
 
         for A_i,B_i in init_pairs:
-            A = list(S[A_i])
-            B = list(S[B_i])
+            A = list(self.S[A_i])
+            B = list(self.S[B_i])
             if fast:
-                C = quick_JOIN(A, B)
+                C = quick_JOIN(self, A, B)
             else:
-                C = JOIN_one_step_shared(A, B)
-            C_if = interference_check(self.S, A_i, B_i, C)
+                C = JOIN_one_step_shared(self, A, B)
+            C_if = interference_check(self, A_i, B_i, C)
             m += 1
             S.append(C)
             m_len += len(C)
             m_total += len(C)
             if first_join:
-                self._visualize_first_join(A, B, C,
+                self._visualize_first_join(self, A, B, C,
                     os.path.join(output_directory, f"graph_first_join.png"))
-            if m % self.H == 0::
+            if m % self.H == 0:
                 if verbose:
-                    print_join_update(len(self.S), H_if,
+                    print_join_update(self, len(self.S), H_if,
                                       total_if, m_len, m_total)
                 H_if = 0
                 m_len = 0
                 if vis:
-                    self._visualize(os.path.join(output_directory,
+                    self._visualize(self, os.path.join(output_directory,
                             f"graph_{len(self.memory_bank)}_memories.png"))
-                    self._visualize_n(os.path.join(output_directory,
+                    self._visualize_n(self, os.path.join(output_directory,
                             f"graph_{len(self.memory_bank)}_n_memories.png"))
             if C_if > 0:
                 H_if += C_if
@@ -299,15 +300,15 @@ class NeuroidalModel:
                 if total_if/len(self.S) > self.F:
                     print_halt_msg(self, len(self.S), total_if, m_total)
                     if vis:
-                        self._visualize(os.path.join(output_directory,
+                        self._visualize(self, os.path.join(output_directory,
                                 f"graph_final_memories.png"))
-                        self._visualize_n(os.path.join(output_directory,
+                        self._visualize_n(self, os.path.join(output_directory,
                                 f"graph_final_n_memories.png"))
                     return self
         print_memorized_msg(self, len(self.S), m_total)
         if vis:
-            self._visualize(os.path.join(output_directory,
+            self._visualize(self, os.path.join(output_directory,
                 f"graph_final_memories.png"))
-            self._visualize_n(os.path.join(output_directory,
+            self._visualize_n(self, os.path.join(output_directory,
                 f"graph_final_n_memories.png"))
         return self
