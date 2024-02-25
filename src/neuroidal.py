@@ -63,7 +63,7 @@ class NeuroidalModel:
         self.mode_w.a = self.t / self.k_m
 
         if vis:
-            self.v_num_memories = self.g.new_vp("int") # Currently underutilized
+            self.v_num_memories = self.g.new_vp("int")
             self.v_interfering_mems = self.g.new_vp("int")
 
             self.v_num_memories.a = 0
@@ -165,7 +165,24 @@ class NeuroidalModel:
         return color
 
     def _visualize(self, output_file_path):
-        for i in self.g.vertices():
+        for i in self.g.iter_vertices():
+            self.v_text[i] = str(self.v_num_memories[i])
+            self.v_color[i] = self.color_by_value(self.v_num_memories[i], 
+                                                  cap=50)
+        gt.graph_draw(
+            self.g,
+            pos=gt.fruchterman_reingold_layout(self.g),
+            output=str(output_file_path),
+            output_size=(1000, 1000),
+            vertex_fill_color=self.v_color,
+            bg_color="black",
+            vertex_text=self.v_text,
+            vertex_text_color="white",
+        )
+        return self
+
+    def _visualize_if(self, output_file_path):
+        for i in self.g.iter_vertices():
             self.v_text[i] = str(self.v_interfering_mems[i])
             self.v_color[i] = self.color_by_value(self.v_interfering_mems[i])
         gt.graph_draw(
@@ -180,37 +197,20 @@ class NeuroidalModel:
         )
         return self
 
-    def _visualize_n(self, output_file_path):
-        for i in self.g.vertices():
-            self.v_text[i] = str(self.v_interfering_mems[i])
-            self.v_color[i] = self.color_by_value(self.v_interfering_mems[i], 
-                                                  cap=50)
-        gt.graph_draw(
-            self.g,
-            pos=gt.fruchterman_reingold_layout(self.g),
-            output=str(output_file_path),
-            output_size=(1000, 1000),
-            vertex_fill_color=self.v_color,
-            bg_color="black",
-            vertex_text=self.v_text,
-            vertex_text_color="white",
-        )
-        return self
-
-    def _visualize_first_join(self, A, B, C, output_file_path):
+    def _visualize_start(self, A, B, C, output_file_path):
         abc_map = {"A": [1.00, 0.75, 0.80],
                    "B": [0.00, 0.00, 1.00],
                    "C": [0.00, 1.00, 0.00]}
-        for i in self.g.vertices():
+        for i in self.g.iter_vertices():
             if i in A:
                 self.v_text[i] += "A"
                 self.v_color[i] = abc_map["A"]
-                for e_ij in i.out_edges():
+                for e_ij in i.iter_out_edges():
                     self.e_color[e_ij] = abc_map["A"]
             elif i in B:
                 self.v_text[i] += "B"
                 self.v_color[i] = abc_map["B"]
-                for e_ij in i.out_edges():
+                for e_ij in i.iter_out_edges():
                     self.e_color[e_ij] = abc_map["B"]
             elif i in C:
                 self.v_text[i] += "C"
@@ -288,7 +288,7 @@ class NeuroidalModel:
             first_join = True
             out_path.mkdir()
             self._visualize(out_path/'graph_'/len(self.S)/'_memories.png')
-            self._visualize_n(out_path/'graph_'/len(self.S)/'_n-memories.png')
+            self._visualize_if(out_path/'graph_'/len(self.S)/'_if.png')
 
         for A_i, B_i in init_pairs:
             A = list(self.S[A_i])
@@ -303,8 +303,7 @@ class NeuroidalModel:
             self.S.append(C)
             m_total += len(C)
             if first_join:
-                self._visualize_first_join(A, B, C, 
-                                           out_path / 'graph_1st_join.png')
+                self._visualize_start(A, B, C, out_path / 'graph_start.png')
             if m % self.H == 0:
                 if verbose:
                     self.print_join_update(len(self.S), H_if,
@@ -314,8 +313,8 @@ class NeuroidalModel:
                 if vis:
                     self._visualize(out_path / 'graph_'
                                     / len(self.S)/ '_memories.png')
-                    self._visualize_n(out_path / 'graph_'
-                                      / len(self.S)/ '_n-memories.png')
+                    self._visualize_if(out_path / 'graph_'
+                                       / len(self.S)/ '_if.png')
 
             C_if = self.interference_check(A_i, B_i, C, vis)
             if C_if > 0:
@@ -325,11 +324,11 @@ class NeuroidalModel:
                     self.print_halt_msg(len(self.S), total_if, m_total)
                     if vis:
                         self._visualize(out_path/'graph_final_memories.png')
-                        self._visualize_n(out_path/'graph_final_n-memories.png')
+                        self._visualize_if(out_path/'graph_final_if.png')
                     return
 
         self.print_memorized_msg(len(self.S), m_total)
         if vis:
             self._visualize(out_path / 'graph_final_memories.png')
-            self._visualize_n(out_path / 'graph_final_n-memories.png')
+            self._visualize_if(out_path / 'graph_final_if.png')
         return
