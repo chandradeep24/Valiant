@@ -29,24 +29,24 @@ class NeuroidalModel:
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
     # n: number of nodes
     # p: probability of edge existing between two nodes
-    def create_gnp_graph(n: int, p: float, fast: bool) -> gt.Graph:
+    def create_gnp_graph(n: int, p: float, rng, fast: bool) -> gt.Graph:
         g = gt.Graph(directed=True)
         g.add_vertex(n)
         if fast:
-            num_edges = self.rng.binomial(n*(n-1)/2, p)
-            sources = self.rng.integers(0, n, num_edges*2)
-            targets = self.rng.integers(0, n, num_edges*2)
+            num_edges = rng.binomial(n*(n-1)/2, p)
+            sources = rng.integers(0, n, num_edges*2)
+            targets = rng.integers(0, n, num_edges*2)
             mask = sources != targets # removes self-loops
             g.add_edge_list(np.column_stack((sources[mask], targets[mask])))
         else:
             all_edges = itertools.permutations(range(n), 2)
             for e in all_edges:
-                if self.rng.random() < p:
+                if rng.random() < p:
                     g.add_edge(*e)
         return g
 
     def initialize_mode(self, fast=True, vis=False):
-        self.g = self.create_gnp_graph(self.n, self.p, fast)
+        self.g = self.create_gnp_graph(self.n, self.p, self.rng, fast)
 
         self.mode_q = self.g.new_vp("int")
         self.mode_f = self.g.new_vp("int")
