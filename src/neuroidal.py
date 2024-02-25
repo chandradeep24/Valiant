@@ -113,9 +113,13 @@ class NeuroidalModel:
 
     def quick_JOIN(self, A, B):
         self.mode_w.a = 0
+        firing_edge_weight = self.t / self.k_m
         for i in A + B:
-            self.mode_w.a[self.g.get_out_edges(i, [self.g.edge_index])[:,2]] = self.t / self.k_m
-        return self.g.get_vertices()[self.g.get_in_degrees(self.g.get_vertices(), eweight=self.mode_w) > self.t]
+            out_edges = self.g.get_out_edges(i, [self.g.edge_index])
+            self.mode_w.a[out_edges[:,2]] = firing_edge_weight
+        all_in_degrees = self.g.get_in_degrees(self.g.get_vertices(), 
+                                                    eweight=self.mode_w)
+        return self.g.get_vertices()[all_in_degrees > self.t]
 
     def interference_check(self, A_i, B_i, C):
         sum = 0
