@@ -9,8 +9,7 @@ except ImportError:
     gt = None
 
 class NeuroidalModel:
-    def __init__(self, n, d, t, k, k_adj, r_approx, 
-                 L, F, H, S=[], rand_seed=42, new_mems=False):
+    def __init__(self, n, d, t, k, k_adj, r_approx, L, F, H, S=[], new_seed=42):
         self.n = n
         self.d = d
         self.p = d / n
@@ -25,8 +24,7 @@ class NeuroidalModel:
         self.F = F
         self.H = H
         self.S = S
-        self.rng = default_rng(seed=rand_seed)
-        self.track_only_new_memories = new_mems
+        self.rng = default_rng(seed=new_seed)
 
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
     # n: number of nodes
@@ -47,7 +45,7 @@ class NeuroidalModel:
                     g.add_edge(*e)
         return g
 
-    def initialize_mode(self, fast=True):
+    def initialize_mode(self, fast=True, vis=False):
         self.g = self.create_gnp_graph(self.n, self.p, fast)
 
         self.mode_q = self.g.new_vp("int")
@@ -64,8 +62,16 @@ class NeuroidalModel:
         self.mode_qq.a = 1
         self.mode_w.a = self.t / self.k_m
 
-        self.vprop_memories = self.g.new_vp("int")
-        self.vprop_memories.a = 0
+        if vis:
+            self.v_num_memories = self.g.new_vp("int") # Currently underutilized
+            self.v_interfering_mems = self.g.new_vp("int")
+
+            self.v_num_memories.a = 0
+            self.v_interfering_mems.a = 0
+
+            self.v_text = self.g.new_vp("string")
+            self.v_color = self.g.new_vp("vector<float>")
+            self.e_color = self.g.new_ep("vector<float>")
 
     def sum_weights(self, s_i, fast=True):
         if fast:
@@ -96,7 +102,7 @@ class NeuroidalModel:
             self.mode_qq[s_ji] = 2
         return self
 
-    def update_graph(self, two_step=False, fast=True):
+    def update_graph(self, two_step=False, fast=True, vis=False):
         C = []
         for s_i in self.g.iter_vertices():
             w_i = self.sum_weights(s_i, fast)
@@ -105,25 +111,27 @@ class NeuroidalModel:
                 C.append(s_i)
                 if not two_step:
                     self.mode_f[s_i] = 0
+                if vis:
+                    self.v_num_memories[s_i] += 1
             if two_step:
                 for s_ji in self.g.iter_in_edges(s_i):
                     f_j = self.mode_f[s_ji[0]]
                     self._lambda(s_i, w_i, s_ji, f_j)
         return C
 
-    def JOIN(self, A, B, disjoint=False, two_step=False, fast=True):
+    def JOIN(self, A, B, disjoint=False, two_step=False, fast=True, vis=False):
         if disjoint:
             neurons_to_fire = A & B
         else:
             neurons_to_fire = A + B
         for i in neurons_to_fire:
             self.mode_f[i] = 1
-        C = self.update_graph(two_step, fast)
+        C = self.update_graph(two_step, fast, vis)
         self.mode_f.a = 0
         self.mode_q.a = 1
         return C
 
-    def quick_JOIN(self, A, B):
+    def quick_JOIN(self, A, B, vis=False):
         self.mode_w.a = 0
         firing_edge_weight = self.t / self.k_m
         for i in A + B:
@@ -131,94 +139,94 @@ class NeuroidalModel:
             self.mode_w.a[out_edges[:,2]] = firing_edge_weight
         all_in_degrees = self.g.get_in_degrees(self.g.get_vertices(), 
                                                eweight=self.mode_w)
-        return self.g.get_vertices()[all_in_degrees > self.t]
+        C = self.g.get_vertices()[all_in_degrees > self.t]
+        if vis:
+            for i in C:
+                self.v_num_memories[i] += 1
+        return C
 
-    def interference_check(self, A_i, B_i, C):
+    def interference_check(self, A_i, B_i, C, vis=False):
         sum = 0
         for D_i in range(len(self.S)):
             if D_i != A_i and D_i != B_i:
                 D = self.S[D_i]
-                if len(set(C) & set(D)) > (len(D) / 2):
+                interfering_set = len(set(C) & set(D))
+                if len(interfering_set) > (len(D) / 2):
                     sum += 2
+                    if vis:
+                        for i in interfering_set:
+                            self.v_interfering_mems[i] += 1
         return sum
 
-    def generate_color_by_value(value, cap=10):
+    def color_by_value(value, cap=10):
         value = min(max(value, 0), cap)
         r = value / cap
         color = [r, 0.0, 0.0]
         return color
 
     def _visualize(self, output_file_path):
-        self.vprop_colors = self.g.new_vp("vector<float>")
-        self.vprop_text = self.g.new_v("string")
-        for v in self.g.vertices():
-            self.vprop_colors[v] = self.generate_color_by_value(self.vprop_memories[v])
-            self.vprop_text[v] = str(self.vprop_memories[v])
+        for i in self.g.vertices():
+            self.v_text[i] = str(self.v_interfering_mems[i])
+            self.v_color[i] = self.color_by_value(self.v_interfering_mems[i])
         gt.graph_draw(
             self.g,
             pos=gt.fruchterman_reingold_layout(self.g),
             output=str(output_file_path),
             output_size=(1000, 1000),
-            vertex_fill_color=self.vprop_colors,
+            vertex_fill_color=self.v_color,
             bg_color="black",
-            vertex_text=self.vprop_text,
+            vertex_text=self.v_text,
             vertex_text_color="white",
         )
         return self
 
     def _visualize_n(self, output_file_path):
-        self.vprop_colors = self.g.new_vp("vector<float>")
-        self.vprop_text = self.g.new_vp("string")
-        for v in self.g.vertices():
-            self.vprop_colors[v] = self.generate_color_by_value(
-                self.vprop_memories[v], cap=50
-            )
-            self.vprop_text[v] = str(self.vprop_memories[v])
+        for i in self.g.vertices():
+            self.v_text[i] = str(self.v_interfering_mems[i])
+            self.v_color[i] = self.color_by_value(self.v_interfering_mems[i], 
+                                                  cap=50)
         gt.graph_draw(
             self.g,
             pos=gt.fruchterman_reingold_layout(self.g),
             output=str(output_file_path),
             output_size=(1000, 1000),
-            vertex_fill_color=self.vprop_colors,
+            vertex_fill_color=self.v_color,
             bg_color="black",
-            vertex_text=self.vprop_text,
+            vertex_text=self.v_text,
             vertex_text_color="white",
         )
         return self
 
     def _visualize_first_join(self, A, B, C, output_file_path):
-        self.vprop_colors = self.g.new_vp("vector<float>")
-        self.vprop_text = self.g.new_vp("string")
-        self.eprop_colors = self.g.new_ep("vector<float>")
-        abc_map = {"A": [1.0, 0.75, 0.8],
-                   "B": [0.0, 0.0, 1.0],
-                   "C": [0.0, 1.0, 0.0]}
-        for v in self.g.vertices():
-            if v in A:
-                self.vprop_colors[v] = abc_map["A"]
-                self.vprop_text[v] += "A"
-                for e in v.out_edges():
-                    self.eprop_colors[e] = abc_map["A"]
-            elif v in B:
-                self.vprop_colors[v] = abc_map["B"]
-                self.vprop_text[v] += "B"
-                for e in v.out_edges():
-                    self.eprop_colors[e] = abc_map["B"]
-            elif v in C:
-                self.vprop_colors[v] = abc_map["C"]
-                self.vprop_text[v] += "C"
+        abc_map = {"A": [1.00, 0.75, 0.80],
+                   "B": [0.00, 0.00, 1.00],
+                   "C": [0.00, 1.00, 0.00]}
+        for i in self.g.vertices():
+            if i in A:
+                self.v_text[i] += "A"
+                self.v_color[i] = abc_map["A"]
+                for e_ij in i.out_edges():
+                    self.e_color[e_ij] = abc_map["A"]
+            elif i in B:
+                self.v_text[i] += "B"
+                self.v_color[i] = abc_map["B"]
+                for e_ij in i.out_edges():
+                    self.e_color[e_ij] = abc_map["B"]
+            elif i in C:
+                self.v_text[i] += "C"
+                self.v_color[i] = abc_map["C"]
             else:
-                self.vprop_colors[v] = [0.0, 0.0, 0.0]
+                self.v_color[i] = [0.0, 0.0, 0.0]
         gt.graph_draw(
             self.g,
             pos=gt.fruchterman_reingold_layout(self.g),
             output=str(output_file_path),
             output_size=(1000, 1000),
-            vertex_fill_color=self.vprop_colors,
+            vertex_fill_color=self.v_color,
             bg_color="black",
-            vertex_text=self.vprop_text,
+            vertex_text=self.v_text,
             vertex_text_color="white",
-            edge_color=self.eprop_colors,
+            edge_color=self.e_color,
         )
         return self
 
@@ -286,9 +294,9 @@ class NeuroidalModel:
             A = list(self.S[A_i])
             B = list(self.S[B_i])
             if use_QJOIN:
-                C = self.quick_JOIN(A, B)
+                C = self.quick_JOIN(A, B, vis)
             else:
-                C = self.JOIN(A, B, disjoint, two_step, fast)
+                C = self.JOIN(A, B, disjoint, two_step, fast, vis)
 
             m += 1
             m_len += len(C)
@@ -309,7 +317,7 @@ class NeuroidalModel:
                     self._visualize_n(out_path / 'graph_'
                                       / len(self.S)/ '_n-memories.png')
 
-            C_if = self.interference_check(A_i, B_i, C)
+            C_if = self.interference_check(A_i, B_i, C, vis)
             if C_if > 0:
                 H_if += C_if
                 total_if += C_if
