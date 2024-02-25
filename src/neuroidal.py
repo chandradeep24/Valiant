@@ -11,9 +11,8 @@ class NeuroidalModel:
     def __init__(self, n, d, t, k, k_adj, L, F, H, S, r_approx, new_mems=False):
         self.n = n
         self.d = d
-        if n >= 10^5:
-            self.p = d / n
-        else:
+        self.p = d / n
+        if n < 10^5:
             self.p = d / (n - 1)
         self.t = t
         self.k = k
@@ -22,7 +21,7 @@ class NeuroidalModel:
         self.L = L
         self.F = F
         self.H = H
-        self.S = []
+        self.S = S
         self.r_approx = r_approx
         self.track_only_new_memories = new_mems
 
@@ -46,25 +45,24 @@ class NeuroidalModel:
         return g
 
     def initialize_mode(self, fast=True):
-        self.g = create_gnp_graph(self.n, self.p, fast)
+        self.g = self.create_gnp_graph(self.n, self.p, fast)
 
-        self.mode_T = g.new_vp("int")
-        self.mode_q = g.new_vp("int")
-        self.mode_f = g.new_vp("int")
-        self.mode_qq = g.new_ep("int")
-        self.mode_w = g.new_ep("double")
+        self.mode_q = self.g.new_vp("int")
+        self.mode_f = self.g.new_vp("int")
+        self.mode_T = self.g.new_vp("int")
 
-        self.mode_T.a = t
         self.mode_q.a = 1
         self.mode_f.a = 0
+        self.mode_T.a = self.t
+
+        self.mode_qq = self.g.new_ep("int")
+        self.mode_w = self.g.new_ep("double")
+
         self.mode_qq.a = 1
-        self.mode_w.a = t / k_m
+        self.mode_w.a = self.t / self.k_m
 
-        # TODO: Investigate if this property is required
-        self.vprop_memories = g.new_vp("int")
+        self.vprop_memories = self.g.new_vp("int")
         self.vprop_memories.a = 0
-
-        return self
 
     def sum_weights(self, s_i, fast=True):
         if fast:
@@ -73,7 +71,7 @@ class NeuroidalModel:
             return W[F].sum()
         else:
             w_i = 0
-            for s_ji in g.iter_in_edges(s_i):
+            for s_ji in self.g.iter_in_edges(s_i):
                 if self.mode_f[s_ji[0]] == 1:
                     w_i += self.mode_w[s_ji]
             return w_i
@@ -92,8 +90,8 @@ class NeuroidalModel:
     def update_graph(self, one_step=True):
         C = []
         for s_i in self.g.iter_vertices():
-            w_i = sum_weights(self, s_i, fast=True)
-            _delta(self, s_i, w_i)
+            w_i = self.sum_weights(s_i, fast=True)
+            self._delta(s_i, w_i)
             if self.mode_q[s_i] == 2:
                 C.append(s_i)
                 if one_step:
@@ -101,13 +99,13 @@ class NeuroidalModel:
             if not one_step:
                 for s_ji in self.g.iter_in_edges(s_i):
                     f_j = self.mode_f[s_ji[0]]
-                    _lambda(self, s_i, w_i, s_ji, f_j)
+                    self._lambda(s_i, w_i, s_ji, f_j)
         return C
 
     def JOIN_one_step_shared(self, A, B):
         for i in A + B:
             self.mode_f[i] = 1
-        C = update_graph(self, one_step=True)
+        C = self.update_graph(one_step=True)
         self.mode_f.a = 0
         self.mode_q.a = 1
         return C
@@ -137,7 +135,7 @@ class NeuroidalModel:
         self.vprop_colors = self.g.new_vp("vector<float>")
         self.vprop_text = self.g.new_v("string")
         for v in self.g.vertices():
-            self.vprop_colors[v] = generate_color_by_value(self.vprop_memories[v])
+            self.vprop_colors[v] = self.generate_color_by_value(self.vprop_memories[v])
             self.vprop_text[v] = str(self.vprop_memories[v])
         gt.graph_draw(
             self.g,
@@ -155,7 +153,7 @@ class NeuroidalModel:
         self.vprop_colors = self.g.new_vp("vector<float>")
         self.vprop_text = self.g.new_vp("string")
         for v in self.g.vertices():
-            self.vprop_colors[v] = generate_color_by_value(
+            self.vprop_colors[v] = self.generate_color_by_value(
                 self.vprop_memories[v], cap=50
             )
             self.vprop_text[v] = str(self.vprop_memories[v])
@@ -207,43 +205,43 @@ class NeuroidalModel:
         )
         return self
 
-    def print_join_update(self, S_length, H_if, total_if, m_len, m_total):
-        print("Current Total Memories:", S_length)
+    def print_join_update(self, S_len, H_if, total_if, m_len, m_total):
+        print("Current Total Memories:", S_len)
         print("Batch Average Memory Size:", int(m_len/self.H))
         print("Running Average Memory Size:", 
-                int(m_total/(S_length-self.L)),"\n\n")
+                int(m_total/(S_len-self.L)),"\n\n")
         if self.n < 10^5:
             print("Batch Interference Rate:", round(H_if/self.H, 6))
-            print("Running Average Int. Rate:", round(total_if/S_length, 6))
+            print("Running Average Int. Rate:", round(total_if/S_len, 6))
 
-    def print_halt_msg(self, S_length, total_if, m_total):
-        r_obs = int(m_total/(S_length-self.L))
+    def print_halt_msg(self, S_len, total_if, m_total):
+        r_obs = int(m_total/(S_len-self.L))
         r_error = round(((self.r_approx - r_obs) / r_obs) * 100, 2)
         print("-- End of Simulation (Halted) --\n")
         print("Given: n=", self.n, "d=", self.d, "k=", self.k, "k_adj=", 
                 self.k_adj, "r_approx=", self.r_approx, "START_MEM=", self.L)
         print("we halted Memory Formation at", 
                 self.F*100, "% Total Interference.\n")
-        print("Empirical Memory Size:", int(m_total/(S_length-self.L)))
+        print("Empirical Memory Size:", int(m_total/(S_len-self.L)))
         print("Approximation Error of r:", r_error, "%")
-        print("Total Average Interference Rate:", round(total_if/S_length, 6))
+        print("Total Average Interference Rate:", round(total_if/S_len, 6))
         print("Capacity:", self.L, "Initial Memories +", 
-                S_length-self.L, "JOIN Memories.")
+                S_len-self.L, "JOIN Memories.")
 
-    def print_memorized_msg(self, S_length, m_total):
-        r_obs = int(m_total/(S_length-self.L))
+    def print_memorized_msg(self, S_len, m_total):
+        r_obs = int(m_total/(S_len-self.L))
         r_error = round(((self.r_approx - r_obs) / r_obs) * 100, 2)
         print("-- End of Simulation (Completed) --\n")
         print("Given: n=", self.n, "d=", self.d, "k=", self.k, "k_adj=", 
                 self.k_adj, "r_approx=", self.r_approx, "START_MEM=", self.L)
         print("We memorized all combinations of", self.L,"memories",
                 "\n","with less than", self.F*100, "% interference.\n")
-        print("Empirical Memory Size:", int(m_total/(S_length-self.L)))
+        print("Empirical Memory Size:", int(m_total/(S_len-self.L)))
         print("Approximation Error of r:", r_error, "%")
         print("Contains:", self.L, "Initial Memories +",
-                S_length-self.L, "JOIN Memories.")
+                S_len-self.L, "JOIN Memories.")
 
-    def simulate(self, fast=True, vis=False, update=False, verbose=False):
+    def simulate(self, fast=True, vis=False, verbose=False):
         m = 0
         H_if = 0
         m_len = 0
@@ -252,7 +250,7 @@ class NeuroidalModel:
         first_join = False
         print("-- Start of Simulation --\n")
         init_pairs = itertools.combinations(range(self.L), 2)
-        self.S = [rng.choice(np.arange(0,self.n - 1), size=self.r_approx)
+        self.S = [rng.choice(np.arange(0, self.n - 1), size=self.r_approx)
              for _ in range(self.L)]
 
         output_directory = f"../assets/neurons_{self.n}_degree_{self.d}_replication_{self.r_approx}_edge_weights_{self.k}_threshold_{self.t}_startmem_{self.L}"
@@ -268,47 +266,47 @@ class NeuroidalModel:
             self._visualize_n(self, os.path.join(output_directory, 
                     f"graph_{len(self.S)}_n_memories.png"))
 
-        for A_i,B_i in init_pairs:
+        for A_i, B_i in init_pairs:
             A = list(self.S[A_i])
             B = list(self.S[B_i])
             if fast:
-                C = quick_JOIN(self, A, B)
+                C = self.quick_JOIN(A, B)
             else:
-                C = JOIN_one_step_shared(self, A, B)
-            C_if = interference_check(self, A_i, B_i, C)
+                C = self.JOIN_one_step_shared(A, B)
             m += 1
-            S.append(C)
             m_len += len(C)
+            self.S.append(C)
             m_total += len(C)
             if first_join:
-                self._visualize_first_join(self, A, B, C,
+                self._visualize_first_join(A, B, C,
                     os.path.join(output_directory, f"graph_first_join.png"))
             if m % self.H == 0:
                 if verbose:
-                    print_join_update(self, len(self.S), H_if,
-                                      total_if, m_len, m_total)
+                    self.print_join_update(len(self.S), H_if,
+                                            total_if, m_len, m_total)
                 H_if = 0
                 m_len = 0
                 if vis:
-                    self._visualize(self, os.path.join(output_directory,
+                    self._visualize(os.path.join(output_directory,
                             f"graph_{len(self.memory_bank)}_memories.png"))
-                    self._visualize_n(self, os.path.join(output_directory,
+                    self._visualize_n(os.path.join(output_directory,
                             f"graph_{len(self.memory_bank)}_n_memories.png"))
+            C_if = self.interference_check(A_i, B_i, C)
             if C_if > 0:
                 H_if += C_if
                 total_if += C_if
                 if total_if/len(self.S) > self.F:
-                    print_halt_msg(self, len(self.S), total_if, m_total)
+                    self.print_halt_msg(len(self.S), total_if, m_total)
                     if vis:
-                        self._visualize(self, os.path.join(output_directory,
+                        self._visualize(os.path.join(output_directory,
                                 f"graph_final_memories.png"))
-                        self._visualize_n(self, os.path.join(output_directory,
+                        self._visualize_n(os.path.join(output_directory,
                                 f"graph_final_n_memories.png"))
-                    return self
-        print_memorized_msg(self, len(self.S), m_total)
+                    return
+        self.print_memorized_msg(len(self.S), m_total)
         if vis:
-            self._visualize(self, os.path.join(output_directory,
+            self._visualize(os.path.join(output_directory,
                 f"graph_final_memories.png"))
-            self._visualize_n(self, os.path.join(output_directory,
+            self._visualize_n(os.path.join(output_directory,
                 f"graph_final_n_memories.png"))
-        return self
+        return
