@@ -2,7 +2,7 @@ import time
 import pathlib
 import itertools
 import numpy as np
-from numpy.random import *
+from numpy.random import default_rng
 try:
     import graph_tool.all as gt
 except ImportError:
