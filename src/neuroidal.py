@@ -68,7 +68,7 @@ class NeuroidalModel:
         if fast:
             W = self.g.get_in_edges(s_i, [self.mode_w])[:,2]
             F = np.array(self.g.get_in_neighbors(s_i, [self.mode_f])[:,1], 
-                                                                    dtype=bool)
+                         dtype=bool)
             return W[F].sum()
         else:
             w_i = 0
@@ -78,35 +78,44 @@ class NeuroidalModel:
             return w_i
 
     def _delta(self, s_i, w_i):
-        if w_i > self.mode_T[s_i]:
+        if w_i <= self.mode_T[s_i]:
+            self.mode_f[s_i] = 0
+            self.mode_q[s_i] = 1
+        else:
             self.mode_f[s_i] = 1
             self.mode_q[s_i] = 2
         return self
 
     def _lambda(self, s_i, w_i, s_ji, f_j):
-        if f_j == 1:
+        if f_j == 0:
+            self.mode_qq[s_ji] = 1
+        else:
             self.mode_qq[s_ji] = 2
         return self
 
-    def update_graph(self, one_step=True):
+    def update_graph(self, two_step=False, fast=True):
         C = []
         for s_i in self.g.iter_vertices():
-            w_i = self.sum_weights(s_i, fast=True)
+            w_i = self.sum_weights(s_i, fast)
             self._delta(s_i, w_i)
             if self.mode_q[s_i] == 2:
                 C.append(s_i)
-                if one_step:
+                if not two_step:
                     self.mode_f[s_i] = 0
-            if not one_step:
+            if two_step:
                 for s_ji in self.g.iter_in_edges(s_i):
                     f_j = self.mode_f[s_ji[0]]
                     self._lambda(s_i, w_i, s_ji, f_j)
         return C
 
-    def JOIN_one_step_shared(self, A, B):
-        for i in A + B:
+    def JOIN(self, A, B, disjoint=False, two_step=False, fast=True):
+        if disjoint:
+            neurons_to_fire = A & B
+        else:
+            neurons_to_fire = A + B
+        for i in neurons_to_fire:
             self.mode_f[i] = 1
-        C = self.update_graph(one_step=True)
+        C = self.update_graph(two_step, fast)
         self.mode_f.a = 0
         self.mode_q.a = 1
         return C
@@ -118,7 +127,7 @@ class NeuroidalModel:
             out_edges = self.g.get_out_edges(i, [self.g.edge_index])
             self.mode_w.a[out_edges[:,2]] = firing_edge_weight
         all_in_degrees = self.g.get_in_degrees(self.g.get_vertices(), 
-                                                    eweight=self.mode_w)
+                                               eweight=self.mode_w)
         return self.g.get_vertices()[all_in_degrees > self.t]
 
     def interference_check(self, A_i, B_i, C):
@@ -179,8 +188,8 @@ class NeuroidalModel:
         self.vprop_text = self.g.new_vp("string")
         self.eprop_colors = self.g.new_ep("vector<float>")
         abc_map = {"A": [1.0, 0.75, 0.8],
-                    "B": [0.0, 0.0, 1.0],
-                    "C": [0.0, 1.0, 0.0]}
+                   "B": [0.0, 0.0, 1.0],
+                   "C": [0.0, 1.0, 0.0]}
         for v in self.g.vertices():
             if v in A:
                 self.vprop_colors[v] = abc_map["A"]
@@ -214,7 +223,7 @@ class NeuroidalModel:
         print("Current Total Memories:", S_len)
         print("Batch Average Memory Size:", int(m_len/self.H))
         print("Running Average Memory Size:", 
-                int(m_total/(S_len-self.L)),"\n\n")
+              int(m_total/(S_len-self.L)),"\n\n")
         if self.n < 10^5:
             print("Batch Interference Rate:", round(H_if/self.H, 6))
             print("Running Average Int. Rate:", round(total_if/S_len, 6))
@@ -224,29 +233,30 @@ class NeuroidalModel:
         r_error = round(((self.r_approx - r_obs) / r_obs) * 100, 2)
         print("-- End of Simulation (Halted) --\n")
         print("Given: n=", self.n, "d=", self.d, "k=", self.k, "k_adj=", 
-                self.k_adj, "r_approx=", self.r_approx, "START_MEM=", self.L)
+              self.k_adj, "r_approx=", self.r_approx, "START_MEM=", self.L)
         print("we halted Memory Formation at", 
-                self.F*100, "% Total Interference.\n")
+              self.F * 100, "% Total Interference.\n")
         print("Empirical Memory Size:", int(m_total/(S_len-self.L)))
         print("Approximation Error of r:", r_error, "%")
         print("Total Average Interference Rate:", round(total_if/S_len, 6))
         print("Capacity:", self.L, "Initial Memories +", 
-                S_len-self.L, "JOIN Memories.")
+              S_len-self.L, "JOIN Memories.")
 
     def print_memorized_msg(self, S_len, m_total):
         r_obs = int(m_total/(S_len-self.L))
         r_error = round(((self.r_approx - r_obs) / r_obs) * 100, 2)
         print("-- End of Simulation (Completed) --\n")
         print("Given: n=", self.n, "d=", self.d, "k=", self.k, "k_adj=", 
-                self.k_adj, "r_approx=", self.r_approx, "START_MEM=", self.L)
+              self.k_adj, "r_approx=", self.r_approx, "START_MEM=", self.L)
         print("We memorized all combinations of", self.L,"memories",
-                "\n","with less than", self.F*100, "% interference.\n")
+              "\n","with less than", self.F*100, "% interference.\n")
         print("Empirical Memory Size:", int(m_total/(S_len-self.L)))
         print("Approximation Error of r:", r_error, "%")
         print("Contains:", self.L, "Initial Memories +",
-                S_len-self.L, "JOIN Memories.")
+              S_len-self.L, "JOIN Memories.")
 
-    def simulate(self, fast=True, vis=False, verbose=False):
+    def simulate(self, use_QJOIN=True, disjoint=False, 
+                 two_step=False, fast=True, vis=False, verbose=False):
         m = 0
         H_if = 0
         m_len = 0
@@ -255,14 +265,14 @@ class NeuroidalModel:
         first_join = False
         init_pairs = itertools.combinations(range(self.L), 2)
         self.S = [rng.choice(np.arange(0, self.n - 1), size=self.r_approx)
-             for _ in range(self.L)]
+                  for _ in range(self.L)]
 
         print("-- Start of Simulation --\n")
         start_dir = pathlib.Path('../assets')
         start_time = time.strftime("%m-%d-%y_%H:%M:%S")
-        out_path = (start_dir / start_time / '_neurons_' / self.n /
-                    '_degree_' / self.d / '_edge-weights_' / self.k /
-                    '_replication_' / self.r_approx / '_start-mems_' / self.L)
+        out_path = (start_dir / start_time / '_neurons_' / self.n
+                    / '_degree_' / self.d / '_edge-weights_' / self.k
+                    / '_replication_' / self.r_approx / '_start-mems_' / self.L)
         if vis:
             first_join = True
             out_path.mkdir()
@@ -272,10 +282,10 @@ class NeuroidalModel:
         for A_i, B_i in init_pairs:
             A = list(self.S[A_i])
             B = list(self.S[B_i])
-            if fast:
+            if use_QJOIN:
                 C = self.quick_JOIN(A, B)
             else:
-                C = self.JOIN_one_step_shared(A, B)
+                C = self.JOIN(A, B, disjoint, two_step, fast)
 
             m += 1
             m_len += len(C)
@@ -283,18 +293,18 @@ class NeuroidalModel:
             m_total += len(C)
             if first_join:
                 self._visualize_first_join(A, B, C, 
-                                            out_path / 'graph_1st_join.png')
+                                           out_path / 'graph_1st_join.png')
             if m % self.H == 0:
                 if verbose:
                     self.print_join_update(len(self.S), H_if,
-                                            total_if, m_len, m_total)
+                                           total_if, m_len, m_total)
                 H_if = 0
                 m_len = 0
                 if vis:
-                    self._visualize(out_path / 'graph_' /
-                                        len(self.S)/ '_memories.png')
-                    self._visualize_n(out_path / 'graph_' /
-                                        len(self.S)/ '_n-memories.png')
+                    self._visualize(out_path / 'graph_'
+                                    / len(self.S)/ '_memories.png')
+                    self._visualize_n(out_path / 'graph_'
+                                      / len(self.S)/ '_n-memories.png')
 
             C_if = self.interference_check(A_i, B_i, C)
             if C_if > 0:
