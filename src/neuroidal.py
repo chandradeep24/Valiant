@@ -3,7 +3,10 @@ import pathlib
 import itertools
 import numpy as np
 from numpy.random import *
-import graph_tool.all as gt
+try:
+    import graph_tool.all as gt
+except ImportError:
+    gt = None
 
 rng = np.random.default_rng(seed=42)
 
