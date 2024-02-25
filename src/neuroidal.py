@@ -8,10 +8,9 @@ try:
 except ImportError:
     gt = None
 
-rng = np.random.default_rng(seed=42)
-
 class NeuroidalModel:
-    def __init__(self, n, d, t, k, k_adj, L, F, H, S, r_approx, new_mems=False):
+    def __init__(self, n, d, t, k, k_adj, r_approx, 
+                 L, F, H, S=[], rand_seed=42, new_mems=False):
         self.n = n
         self.d = d
         self.p = d / n
@@ -21,11 +20,12 @@ class NeuroidalModel:
         self.k = k
         self.k_adj = k_adj
         self.k_m = k * k_adj
+        self.r_approx = r_approx
         self.L = L
         self.F = F
         self.H = H
         self.S = S
-        self.r_approx = r_approx
+        self.rng = default_rng(seed=rand_seed)
         self.track_only_new_memories = new_mems
 
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
@@ -35,15 +35,15 @@ class NeuroidalModel:
         g = gt.Graph(directed=True)
         g.add_vertex(n)
         if fast:
-            num_edges = rng.binomial(n*(n-1)/2, p)
-            sources = rng.integers(0, n, num_edges*2)
-            targets = rng.integers(0, n, num_edges*2)
+            num_edges = self.rng.binomial(n*(n-1)/2, p)
+            sources = self.rng.integers(0, n, num_edges*2)
+            targets = self.rng.integers(0, n, num_edges*2)
             mask = sources != targets # removes self-loops
             g.add_edge_list(np.column_stack((sources[mask], targets[mask])))
         else:
             all_edges = itertools.permutations(range(n), 2)
             for e in all_edges:
-                if rng.random() < p:
+                if self.rng.random() < p:
                     g.add_edge(*e)
         return g
 
@@ -267,7 +267,7 @@ class NeuroidalModel:
         total_if = 0
         first_join = False
         init_pairs = itertools.combinations(range(self.L), 2)
-        self.S = [rng.choice(np.arange(0, self.n - 1), size=self.r_approx)
+        self.S = [self.rng.choice(np.arange(0, self.n - 1), size=self.r_approx)
                   for _ in range(self.L)]
 
         print("-- Start of Simulation --\n")
