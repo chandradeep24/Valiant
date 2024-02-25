@@ -1,5 +1,5 @@
-import os
 import time
+import pathlib
 import itertools
 import numpy as np
 from numpy.random import *
@@ -67,7 +67,8 @@ class NeuroidalModel:
     def sum_weights(self, s_i, fast=True):
         if fast:
             W = self.g.get_in_edges(s_i, [self.mode_w])[:,2]
-            F = np.array(self.g.get_in_neighbors(s_i, [self.mode_f])[:,1], dtype=bool)
+            F = np.array(self.g.get_in_neighbors(s_i, [self.mode_f])[:,1], 
+                                                                    dtype=bool)
             return W[F].sum()
         else:
             w_i = 0
@@ -131,7 +132,7 @@ class NeuroidalModel:
         color = [r, 0.0, 0.0]
         return color
 
-    def _visualize(self, output_file_name):
+    def _visualize(self, output_file_path):
         self.vprop_colors = self.g.new_vp("vector<float>")
         self.vprop_text = self.g.new_v("string")
         for v in self.g.vertices():
@@ -140,7 +141,7 @@ class NeuroidalModel:
         gt.graph_draw(
             self.g,
             pos=gt.fruchterman_reingold_layout(self.g),
-            output=output_file_name,
+            output=str(output_file_path),
             output_size=(1000, 1000),
             vertex_fill_color=self.vprop_colors,
             bg_color="black",
@@ -149,7 +150,7 @@ class NeuroidalModel:
         )
         return self
 
-    def _visualize_n(self, output_file_name):
+    def _visualize_n(self, output_file_path):
         self.vprop_colors = self.g.new_vp("vector<float>")
         self.vprop_text = self.g.new_vp("string")
         for v in self.g.vertices():
@@ -160,7 +161,7 @@ class NeuroidalModel:
         gt.graph_draw(
             self.g,
             pos=gt.fruchterman_reingold_layout(self.g),
-            output=output_file_name,
+            output=str(output_file_path),
             output_size=(1000, 1000),
             vertex_fill_color=self.vprop_colors,
             bg_color="black",
@@ -169,7 +170,7 @@ class NeuroidalModel:
         )
         return self
 
-    def _visualize_first_join(self, A, B, C, output_file_name):
+    def _visualize_first_join(self, A, B, C, output_file_path):
         self.vprop_colors = self.g.new_vp("vector<float>")
         self.vprop_text = self.g.new_vp("string")
         self.eprop_colors = self.g.new_ep("vector<float>")
@@ -195,7 +196,7 @@ class NeuroidalModel:
         gt.graph_draw(
             self.g,
             pos=gt.fruchterman_reingold_layout(self.g),
-            output=output_file_name,
+            output=str(output_file_path),
             output_size=(1000, 1000),
             vertex_fill_color=self.vprop_colors,
             bg_color="black",
@@ -248,20 +249,21 @@ class NeuroidalModel:
         m_total = 0
         total_if = 0
         first_join = False
-        print("-- Start of Simulation --\n")
         init_pairs = itertools.combinations(range(self.L), 2)
         self.S = [rng.choice(np.arange(0, self.n - 1), size=self.r_approx)
              for _ in range(self.L)]
 
+        print("-- Start of Simulation --\n")
+        start_dir = pathlib.Path('../assets')
         start_time = time.strftime("%m-%d-%y_%H:%M:%S")
-        output_directory = f"../assets/{start_time}_neurons_{self.n}_degree_{self.d}_replication_{self.r_approx}_edge_weights_{self.k}_threshold_{self.t}_startmem_{self.L}"
+        out_path = (start_dir / start_time / '_neurons_' / self.n /
+                    '_degree_' / self.d / '_edge-weights_' / self.k /
+                    '_replication_' / self.r_approx / '_start-mems_' / self.L)
         if vis:
             first_join = True
-            os.makedirs(output_directory)
-            self._visualize(self, os.path.join(output_directory, 
-                    f"graph_{len(self.S)}_memories.png"))
-            self._visualize_n(self, os.path.join(output_directory, 
-                    f"graph_{len(self.S)}_n_memories.png"))
+            out_path.mkdir()
+            self._visualize(out_path/'graph_'/len(self.S)/'_memories.png')
+            self._visualize_n(out_path/'graph_'/len(self.S)/'_n-memories.png')
 
         for A_i, B_i in init_pairs:
             A = list(self.S[A_i])
@@ -270,13 +272,14 @@ class NeuroidalModel:
                 C = self.quick_JOIN(A, B)
             else:
                 C = self.JOIN_one_step_shared(A, B)
+
             m += 1
             m_len += len(C)
             self.S.append(C)
             m_total += len(C)
             if first_join:
-                self._visualize_first_join(A, B, C,
-                    os.path.join(output_directory, f"graph_first_join.png"))
+                self._visualize_first_join(A, B, C, 
+                                            out_path / 'graph_1st_join.png')
             if m % self.H == 0:
                 if verbose:
                     self.print_join_update(len(self.S), H_if,
@@ -284,10 +287,11 @@ class NeuroidalModel:
                 H_if = 0
                 m_len = 0
                 if vis:
-                    self._visualize(os.path.join(output_directory,
-                            f"graph_{len(self.memory_bank)}_memories.png"))
-                    self._visualize_n(os.path.join(output_directory,
-                            f"graph_{len(self.memory_bank)}_n_memories.png"))
+                    self._visualize(out_path / 'graph_' /
+                                        len(self.S)/ '_memories.png')
+                    self._visualize_n(out_path / 'graph_' /
+                                        len(self.S)/ '_n-memories.png')
+
             C_if = self.interference_check(A_i, B_i, C)
             if C_if > 0:
                 H_if += C_if
@@ -295,15 +299,12 @@ class NeuroidalModel:
                 if total_if/len(self.S) > self.F:
                     self.print_halt_msg(len(self.S), total_if, m_total)
                     if vis:
-                        self._visualize(os.path.join(output_directory,
-                                f"graph_final_memories.png"))
-                        self._visualize_n(os.path.join(output_directory,
-                                f"graph_final_n_memories.png"))
+                        self._visualize(out_path/'graph_final_memories.png')
+                        self._visualize_n(out_path/'graph_final_n-memories.png')
                     return
+
         self.print_memorized_msg(len(self.S), m_total)
         if vis:
-            self._visualize(os.path.join(output_directory,
-                f"graph_final_memories.png"))
-            self._visualize_n(os.path.join(output_directory,
-                f"graph_final_n_memories.png"))
+            self._visualize(out_path / 'graph_final_memories.png')
+            self._visualize_n(out_path / 'graph_final_n-memories.png')
         return
