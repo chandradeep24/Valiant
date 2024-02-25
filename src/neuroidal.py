@@ -1,5 +1,5 @@
 import os
-import shutil
+import time
 import itertools
 import numpy as np
 from numpy.random import *
@@ -253,14 +253,11 @@ class NeuroidalModel:
         self.S = [rng.choice(np.arange(0, self.n - 1), size=self.r_approx)
              for _ in range(self.L)]
 
-        output_directory = f"../assets/neurons_{self.n}_degree_{self.d}_replication_{self.r_approx}_edge_weights_{self.k}_threshold_{self.t}_startmem_{self.L}"
+        start_time = time.strftime("%m-%d-%y_%H:%M:%S")
+        output_directory = f"../assets/{start_time}_neurons_{self.n}_degree_{self.d}_replication_{self.r_approx}_edge_weights_{self.k}_threshold_{self.t}_startmem_{self.L}"
         if vis:
             first_join = True
-            if os.path.exists(output_directory):
-                shutil.rmtree(output_directory)
-                os.makedirs(output_directory)
-            else:
-                os.makedirs(output_directory)
+            os.makedirs(output_directory)
             self._visualize(self, os.path.join(output_directory, 
                     f"graph_{len(self.S)}_memories.png"))
             self._visualize_n(self, os.path.join(output_directory, 
