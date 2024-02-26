@@ -281,14 +281,16 @@ class NeuroidalModel:
         print("-- Start of Simulation --\n")
         start_dir = pathlib.Path('../assets')
         start_time = time.strftime("%m-%d-%y_%H:%M:%S")
-        out_path = (start_dir / start_time / '_neurons_' / self.n
-                    / '_degree_' / self.d / '_edge-weights_' / self.k
-                    / '_replication_' / self.r_approx / '_start-mems_' / self.L)
+        out_path = (
+            start_dir / 
+            f"{start_time}_neurons_{self.n}_degree_{self.d}_edge-weights_"
+            f"{self.k}_replication_{self.r_approx}_start-mems_{self.L}"
+        )
         if vis:
             first_join = True
             out_path.mkdir()
-            self._visualize(out_path/'graph_'/len(self.S)/'_memories.png')
-            self._visualize_if(out_path/'graph_'/len(self.S)/'_if.png')
+            self._visualize(out_path / f"graph_{len(self.S)}_memories.png")
+            self._visualize_if(out_path / f"graph_{len(self.S)}_if.png")
 
         for A_i, B_i in init_pairs:
             A = list(self.S[A_i])
@@ -303,7 +305,7 @@ class NeuroidalModel:
             self.S.append(C)
             m_total += len(C)
             if first_join:
-                self._visualize_start(A, B, C, out_path / 'graph_start.png')
+                self._visualize_start(A, B, C, out_path / f"graph_start.png")
             if m % self.H == 0:
                 if verbose:
                     self.print_join_update(len(self.S), H_if,
@@ -311,10 +313,14 @@ class NeuroidalModel:
                 H_if = 0
                 m_len = 0
                 if vis:
-                    self._visualize(out_path / 'graph_'
-                                    / len(self.S)/ '_memories.png')
-                    self._visualize_if(out_path / 'graph_'
-                                       / len(self.S)/ '_if.png')
+                    self._visualize(
+                        out_path / 
+                        f"graph_{len(self.S)}_memories.png"
+                    )
+                    self._visualize_if(
+                        out_path / 
+                        f"graph_{len(self.S)}_if.png"
+                    )
 
             C_if = self.interference_check(A_i, B_i, C, vis)
             if C_if > 0:
@@ -323,12 +329,12 @@ class NeuroidalModel:
                 if total_if/len(self.S) > self.F:
                     self.print_halt_msg(len(self.S), total_if, m_total)
                     if vis:
-                        self._visualize(out_path/'graph_final_memories.png')
-                        self._visualize_if(out_path/'graph_final_if.png')
+                        self._visualize(out_path / f"graph_final_memories.png")
+                        self._visualize_if(out_path / f"graph_final_if.png")
                     return
 
         self.print_memorized_msg(len(self.S), m_total)
         if vis:
-            self._visualize(out_path / 'graph_final_memories.png')
-            self._visualize_if(out_path / 'graph_final_if.png')
+            self._visualize(out_path / f"graph_final_memories.png")
+            self._visualize_if(out_path / f"graph_final_if.png")
         return
