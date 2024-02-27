@@ -205,12 +205,12 @@ class NeuroidalModel:
             if i in A:
                 self.v_text[i] += "A"
                 self.v_color[i] = abc_map["A"]
-                for e_ij in i.iter_out_edges():
+                for e_ij in self.g.iter_out_edges(i):
                     self.e_color[e_ij] = abc_map["A"]
             elif i in B:
                 self.v_text[i] += "B"
                 self.v_color[i] = abc_map["B"]
-                for e_ij in i.iter_out_edges():
+                for e_ij in self.g.iter_out_edges(i):
                     self.e_color[e_ij] = abc_map["B"]
             elif i in C:
                 self.v_text[i] += "C"
