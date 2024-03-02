@@ -29,7 +29,7 @@ class NeuroidalModel:
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
     # n: number of nodes
     # p: probability of edge existing between two nodes
-    def create_gnp_graph(n: int, p: float, rng, fast: bool) -> gt.Graph:
+    def create_gnp_graph(self, n: int, p: float, rng, fast: bool) -> gt.Graph:
         g = gt.Graph(directed=True)
         g.add_vertex(n)
         if fast:
@@ -46,7 +46,7 @@ class NeuroidalModel:
         return g
 
     def initialize_mode(self, fast=True, vis=False):
-        self.g = self.create_gnp_graph(self.n, self.p, self.rng, fast)
+        self.g = create_gnp_graph(self, self.n, self.p, self.rng, fast)
 
         self.mode_q = self.g.new_vp("int")
         self.mode_f = self.g.new_vp("int")
@@ -150,7 +150,7 @@ class NeuroidalModel:
         for D_i in range(len(self.S)):
             if D_i != A_i and D_i != B_i:
                 D = self.S[D_i]
-                interfering_set = len(set(C) & set(D))
+                interfering_set = set(C) & set(D)
                 if len(interfering_set) > (len(D) / 2):
                     sum += 2
                     if vis:
