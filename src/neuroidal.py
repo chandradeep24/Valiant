@@ -46,7 +46,7 @@ class NeuroidalModel:
         return g
 
     def initialize_mode(self, fast=True, vis=False):
-        self.g = self.create_gnp_graph(self.n, self.p, self.rng, fast)
+        self.g = create_gnp_graph(self, self.n, self.p, self.rng, fast)
 
         self.mode_q = self.g.new_vp("int")
         self.mode_f = self.g.new_vp("int")
