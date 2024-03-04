@@ -29,7 +29,7 @@ class NeuroidalModel:
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
     # n: number of nodes
     # p: probability of edge existing between two nodes
-    def create_gnp_graph(n: int, p: float, rng, fast: bool) -> gt.Graph:
+    def create_gnp_graph(self, n: int, p: float, rng, fast: bool) -> gt.Graph:
         g = gt.Graph(directed=True)
         g.add_vertex(n)
         if fast:
@@ -150,7 +150,7 @@ class NeuroidalModel:
         for D_i in range(len(self.S)):
             if D_i != A_i and D_i != B_i:
                 D = self.S[D_i]
-                interfering_set = len(set(C) & set(D))
+                interfering_set = set(C) & set(D)
                 if len(interfering_set) > (len(D) / 2):
                     sum += 2
                     if vis:
@@ -267,7 +267,7 @@ class NeuroidalModel:
               S_len-self.L, "JOIN Memories.")
 
     def simulate(self, use_QJOIN=True, disjoint=False, 
-                 two_step=False, fast=True, vis=False, verbose=False):
+                 two_step=False, fast=True, vis=False, verbose=True):
         m = 0
         H_if = 0
         m_len = 0
@@ -299,7 +299,7 @@ class NeuroidalModel:
                 C = self.quick_JOIN(A, B, vis)
             else:
                 C = self.JOIN(A, B, disjoint, two_step, fast, vis)
-
+            C_if = self.interference_check(A_i, B_i, C, vis)
             m += 1
             m_len += len(C)
             self.S.append(C)
@@ -322,7 +322,6 @@ class NeuroidalModel:
                         f"graph_{len(self.S)}_if.png"
                     )
 
-            C_if = self.interference_check(A_i, B_i, C, vis)
             if C_if > 0:
                 H_if += C_if
                 total_if += C_if
