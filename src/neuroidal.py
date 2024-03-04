@@ -267,7 +267,7 @@ class NeuroidalModel:
               S_len-self.L, "JOIN Memories.")
 
     def simulate(self, use_QJOIN=True, disjoint=False, 
-                 two_step=False, fast=True, vis=False, verbose=False):
+                 two_step=False, fast=True, vis=False, verbose=True):
         m = 0
         H_if = 0
         m_len = 0
@@ -299,7 +299,7 @@ class NeuroidalModel:
                 C = self.quick_JOIN(A, B, vis)
             else:
                 C = self.JOIN(A, B, disjoint, two_step, fast, vis)
-
+            C_if = self.interference_check(A_i, B_i, C, vis)
             m += 1
             m_len += len(C)
             self.S.append(C)
@@ -322,7 +322,6 @@ class NeuroidalModel:
                         f"graph_{len(self.S)}_if.png"
                     )
 
-            C_if = self.interference_check(A_i, B_i, C, vis)
             if C_if > 0:
                 H_if += C_if
                 total_if += C_if
