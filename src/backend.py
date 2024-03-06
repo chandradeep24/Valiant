@@ -130,4 +130,7 @@ class Backend:
 
 if __name__ == "__main__":
     # Backend.create_gnp_graph(1000, 0.5)
-    Backend.create_sw_graph(100, 25, 0.5)
+    g = Backend.create_sw_graph(100, 25, 0.5)
+
+    pos = gt.sfdp_layout(g, cooling_step=0.95)
+    gt.graph_draw(g, pos=pos, output='output.png')
