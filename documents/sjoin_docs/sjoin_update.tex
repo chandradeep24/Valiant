@@ -1,0 +1,101 @@
+\documentclass[10pt]{extarticle}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{afterpage}
+\usepackage{amsthm}
+\usepackage[margin = 0.5in]{geometry}
+\usepackage{fancyhdr}
+\usepackage{framed}
+\usepackage{enumitem}
+\usepackage{stmaryrd}
+\usepackage{multirow}
+\usepackage{natbib}
+\usepackage{tikz}
+\usepackage[ruled,vlined]{algorithm2e}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\e}{\epsilon}
+\renewcommand\labelitemi{-}
+\newcommand*\interior[1]{\mathring{#1}}
+\newcommand*\closure[1]{\overline{#1}}
+\DeclareMathOperator{\im}{Im}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem*{claim}{Claim}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\renewcommand{\thealgocf}{}
+
+\title{\textbf{Sequence-JOIN Progress Update}}
+\author{Patrick Perrine\\ Eben Sherwood}
+\date{\today}
+
+\begin{document}
+ \maketitle
+ 
+This is to document our current progress in developing Sequence-JOIN (SJOIN). We have created a new process to better account for the cascading effect that firing one $r$-sized memory can have on a realistic Neuroidal model.
+
+\section*{Current Algorithmic Formulation}
+
+\begin{algorithm}
+\DontPrintSemicolon
+\KwIn{The Neuroidal model $G$, initial memory $A$, and the sequence length $l$.}
+\KwOut{An updated $G$, along with the vector of total, chained memories $L$.}
+  \SetKwFunction{SJOIN}{SequenceJOIN}
+  \SetKwProg{SJ}{Algorithm}{:}{\KwRet}
+  \SJ{\SJOIN{$G = (V, E), A, l$}}{
+  \For{all synapses $\{i,j\}$ in $E$}{
+     $w_{ij} \gets 0$\;
+  }
+  $L \gets (A)$\;
+  \For{$m = 1, 2, \dots l$}{
+	  \For{all neurons $i$ in $L_{m}$}{
+	       $f_{i} \gets 1$\;
+	    }
+	 $B \gets \emptyset$\;
+	 $k_{2} \gets 2 \cdot k_{G}$\;
+	 \For{$k_{test} = k_{2}, k_{2}-1,k_{2}-2, \dots k_{G}$}{ 
+	 	 \For{all synapses $\{i,j\}$ in $L_{m}$}{
+	       $w_{ij} \gets \frac{T_{i}}{k_{test}}$\;
+	    }
+	    \texttt{UpdateNeuroids}($G$)\;
+		 $B_{test} \gets \emptyset$\;
+	    \For{each neuron $i$ in $V$}{
+	      \If{$q_{i} == 2$}{
+	       $B_{test} \gets B_{test} \cup i$\;
+	     }
+	    }
+	    \If{$|B_{test}| \sim r_{G}$}{
+	    	$B \gets B_{test}$\;
+	    	\For{all synapses $\{i,j\}$ in $A$}{
+	        \If{$j$ is not in $B$}{
+	          $w_{ij} \gets 0$\;
+	        } 
+	      }
+	    \textbf{break}\;  
+	    }  
+	 }
+    \eIf{\upshape \texttt{InterferenceCheck}($L, B$)}{
+	   \Return{$G, L$}\;
+	 }
+	 {
+	   $L \gets (L, B)$\;
+	 }
+ 	}
+ 	\Return{$G, L$}\;
+}
+\caption{Sequence-JOIN for $l$-sized Sequences\label{SeqJ}}
+\end{algorithm}
+
+\end{document}
