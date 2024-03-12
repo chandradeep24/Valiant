@@ -26,6 +26,8 @@ class NeuroidalModel:
         self.S = S
         self.rng = default_rng(seed=new_seed)
 
+    # https://graph-tool.skewed.de/static/doc/autosummary/graph_tool.generation.add_random_edges.html
+
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
     # n: number of nodes
     # p: probability of edge existing between two nodes
@@ -109,8 +111,6 @@ class NeuroidalModel:
             self._delta(s_i, w_i)
             if self.mode_q[s_i] == 2:
                 C.append(s_i)
-                if not two_step:
-                    self.mode_f[s_i] = 0
                 if vis:
                     self.v_num_memories[s_i] += 1
             if two_step:
