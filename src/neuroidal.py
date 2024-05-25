@@ -26,26 +26,43 @@ class NeuroidalModel:
         self.S = S
         self.rng = default_rng(seed=new_seed)
 
-    # https://graph-tool.skewed.de/static/doc/autosummary/graph_tool.generation.add_random_edges.html
-
     # Generate an Erdos-Renyi G(n,p) gt.Graph where:
     # n: number of nodes
     # p: probability of edge existing between two nodes
-    def create_gnp_graph(self, n: int, p: float, rng, fast: bool) -> gt.Graph:
+    def create_gnp_graph(self, n: int, p: float, rng) -> gt.Graph:
         g = gt.Graph(directed=True)
         g.add_vertex(n)
-        if fast:
-            num_edges = rng.binomial(n*(n-1)/2, p)
-            sources = rng.integers(0, n, num_edges*2)
-            targets = rng.integers(0, n, num_edges*2)
-            mask = sources != targets # removes self-loops
-            g.add_edge_list(np.column_stack((sources[mask], targets[mask])))
-        else:
-            all_edges = itertools.permutations(range(n), 2)
+        all_edges = itertools.permutations(range(n), 2)
             for e in all_edges:
                 if rng.random() < p:
                     g.add_edge(*e)
         return g
+
+    def create_gnp_adj_graph(n: int, p: float, rng) -> sp.csr_matrix:
+        data = rng.binomial(1, p, size=n * n).astype(np.uint8)
+        data = sp.coo_matrix(data.reshape((n, n)))
+        data.setdiag(0)
+        return data.tocsr()
+
+    def create_gnm_graph(self, n: int, p: float, rng, fast: bool) -> gt.Graph:
+        g = gt.Graph(directed=True)
+        g.add_vertex(n)
+        num_edges = rng.binomial(n*(n-1)//2, p)
+        sources = rng.integers(0, n, num_edges*2)
+        targets = rng.integers(0, n, num_edges*2)
+        mask = sources != targets # removes self-loops
+        g.add_edge_list(np.column_stack((sources[mask], targets[mask])))
+
+    def create_gnm_adj_graph(n: int, p: float, rng) -> sp.csr_matrix:
+        k = rng.binomial(n * (n - 1) // 2, p)
+        sources = rng.integers(0, n, k * 2)
+        targets = rng.integers(0, n, k * 2)
+
+        adj_matrix = sp.coo_matrix(
+            (np.ones(shape=sources.shape), (targets, sources)), (n, n),
+            dtype=np.int8)
+        adj_matrix.setdiag(0)
+        return adj_matrix.tocsr()
 
     def initialize_mode(self, fast=True, vis=False):
         self.g = self.create_gnp_graph(self.n, self.p, self.rng, fast)
