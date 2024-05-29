@@ -13,17 +13,22 @@ class Backend:
         return adj_matrix.tocsr()
 
     @staticmethod
-    def create_gnm_graph(n: int, p: float, seed=None) -> sp.csr_matrix:
+    def create_gnm_graph(n: int, p: float, seed=None) -> np.ndarray:
         rng = default_rng(seed)
         k = rng.binomial(n * (n - 1) // 2, p)
+
         sources = rng.integers(0, n, k * 2)
         targets = rng.integers(0, n, k * 2)
 
-        adj_matrix = sp.coo_matrix(
-            (np.ones(shape=sources.shape), (targets, sources)), (n, n),
-            dtype=np.int8)
-        adj_matrix.setdiag(0)
-        return adj_matrix.tocsr()
+        data = np.zeros(shape=(n, n), dtype=np.uint8)
+        for source, target in zip(sources, targets):
+            data[source, target] = 1
+        return data
+        # adj_matrix = sp.coo_matrix(
+        #     (np.ones(shape=sources.shape), (targets, sources)), (n, n),
+        #     dtype=np.int8)
+        # adj_matrix.setdiag(0)
+        # return adj_matrix.tocsr()
 
     @staticmethod
     def create_gnp_graph(n: int, p: float, seed=None) -> np.ndarray:
@@ -31,17 +36,11 @@ class Backend:
         data = rng.binomial(1, p, size=(n, n))
         np.fill_diagonal(data, 0)
         return data
-        # data = np.zeros(shape=(n, n), dtype=np.uint8)
-        # for i in range(n):
-        #     data[i, :i] = rng.binomial(1, p, size=i)
-        # return data
-        # adj_matrix = sp.coo_matrix(data, (n, n), dtype=np.int8)
-        # adj_matrix.setdiag(0)
-        # return adj_matrix.tocsr()
+
 
     @staticmethod
     def create_ws_graph(n: int, p: float, k: int = -1, directed: bool = True,
-                        seed=None) -> sp.coo_matrix:
+                        seed=None) -> np.ndarray:
         if k == -1:
             k = int((n + np.log(n)) // 2)
 
@@ -60,13 +59,13 @@ class Backend:
                     data[r_ix, n_ix] = 1
                 else:
                     data[n_iy % n, n_ix] = 1
-
-        adj_matrix = sp.coo_matrix(data, (n, n), dtype=np.uint8)
-        return adj_matrix.tocsr()
+        return data
+        # adj_matrix = sp.coo_matrix(data, (n, n), dtype=np.uint8)
+        # return adj_matrix.tocsr()
 
 
     @staticmethod
-    def create_ba_graph(n: int, m: int, seed=None) -> sp.csr_matrix:
+    def create_ba_graph(n: int, m: int, seed=None) -> np.ndarray:
         if m < 1 or m >= n:
             raise Exception(
                 "Barabási–Albert network must have m >= 1 and m < n, m = %d, n = %d" % (
@@ -84,15 +83,14 @@ class Backend:
                    rng.choice(np.arange(n_ix), size=m, p=p, replace=False,
                               shuffle=True), 1)
             data[n_ix, :] = data[:, n_ix]
-
-        adj_matrix = sp.coo_matrix(data, (n, n), dtype=np.uint8)
-        return adj_matrix.tocsr()
+        return data
+        # adj_matrix = sp.coo_matrix(data, (n, n), dtype=np.uint8)
+        # return adj_matrix.tocsr()
 
     @staticmethod
-    def calculate_local_clustering(graph: sp.csr_matrix) -> float:
+    def calculate_local_clustering(A: np.ndarray) -> float:
         # Returns the Local Clustering Coefficient
         # As defined upon an undirected graph, no matter the result
-        A = graph.toarray()
         A = np.maximum(A, A.T)
 
         k_i = np.sum(A, axis=1)
@@ -104,11 +102,10 @@ class Backend:
         return np.sum(np.divide(1, k_j, where=k_j != 0) * B) / A.shape[0]
 
     @staticmethod
-    def calculate_global_clustering(graph: sp.csr_matrix) -> float:
+    def calculate_global_clustering(A: np.ndarray) -> float:
         # The Global Clustering Coefficient is defined as
         # Closed Triples / All Triplets
 
-        A = graph.toarray()
         A = np.maximum(A, A.T)
         k = np.sum(A @ A) - np.trace(A @ A)
         if k == 0:
@@ -116,15 +113,14 @@ class Backend:
         return np.trace(A @ A @ A) / k
 
     @staticmethod
-    def calculate_path_length(g: sp.csr_matrix) -> float:
-        A = g.toarray()
+    def calculate_path_length(A: np.ndarray) -> float:
         A = np.maximum(A, A.T)
 
         d = np.array(A, dtype=float)
         d[d == 0] = np.inf
         np.fill_diagonal(d, 0)
 
-        for k in range(g.shape[0]):
+        for k in range(A.shape[0]):
             d = np.minimum(d, d[:, k:k + 1] + d[k:k + 1, :])
 
         return np.mean(d[d != 0], axis=0)

@@ -78,11 +78,9 @@ class NeuroidalModel:
                 if vis:
                     vis.v_num_memories[s_i] += 1
             if two_step:
-                in_edges = self.g[s_i, :] == 1
-                f_j = self.mode_f[in_edges]
-                zero_mask = f_j == 0
-                self.mode_qq[zero_mask] = 1
-                self.mode_qq[~zero_mask] = 2
+                mask = (self.g[s_i] == 1) & (self.mode_f == 0)
+                self.mode_qq[mask] = 1
+                self.mode_qq[~mask] = 2
         return C
 
 
@@ -98,27 +96,27 @@ class NeuroidalModel:
         return C
 
     def quick_JOIN(self, A, B, vis=False):
-        self.mode_w.fill(0)
-
         firing_edge_weight = self.t / self.k_m
-        self.mode_w[A + B, :] = self.g[A + B, :].astype(float) * firing_edge_weight
 
-        all_in_degrees = self.mode_w.sum(axis=1)
-        C = np.where(all_in_degrees > self.t)[0]
-        if vis:
-            for i in C:
-                vis.v_num_memories[i] += 1
+        self.mode_w.fill(0)
+        self.mode_w[:, A + B] = self.g[:, A + B] * firing_edge_weight
+        in_degrees = self.mode_w.sum(axis=1)
+        C = np.where(in_degrees > self.t)[0]
+
         return C
 
     def interference_check(self, A_i, B_i, C, vis):
-        count = 0
-        for D_i in range(len(self.S)):
-            if D_i != A_i and D_i != B_i:
-                D = self.S[D_i]
-                interfering_set = set(C) & set(D)
-                if len(interfering_set) > (len(D) / 2):
-                    count += 2
-                    if vis:
-                        for i in interfering_set:
-                            vis.v_interfering_mems[i] += 1
-        return count
+        interfering_set = [len(set(self.S[i]) & set(C)) > len(self.S[i]) / 2 for i in range(len(self.S))]
+        interfering_set[A_i] = False
+        interfering_set[B_i] = False
+        return np.sum(interfering_set) * 2
+
+        # count = 0
+        # for D_i in range(len(self.S)):
+        #     if D_i != A_i and D_i != B_i:
+        #         D = self.S[D_i]
+        #         interfering_set = set(C) & set(D)
+        #         if len(interfering_set) > (len(D) / 2):
+        #             count += 2
+
+        # return count

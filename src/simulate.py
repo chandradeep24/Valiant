@@ -86,7 +86,7 @@ def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=T
         vis.visualize_if(out_path / f"graph_{len(model.S)}_if.png")
 
     rng = default_rng(int(seed))
-    model.S = [rng.choice(np.arange(0, model.n - 1), size=model.r_approx)
+    model.S = [rng.choice(np.arange(0, model.n - 1), size=model.r_approx, replace=False)
                for _ in range(model.L)]
 
     init_pairs = itertools.combinations(range(model.L), 2)
@@ -158,45 +158,35 @@ def main():
 
     # Interference
     # n=500, d=128, w=16, r=40 L=100 T=0.1 k=2 -> 350
-    params = {'n': 500, 'd': 128, 'k': 16, 'r_approx': 40, 't': 0.1, 'k_adj': 2.0, 'L': 100, 'F': 0.1, 'H': 50}
+    # params = {'n': 500, 'd': 128, 'k': 16, 'r_approx': 40, 't': 0.1, 'k_adj': 2.0, 'L': 100, 'F': 0.1, 'H': 50}
 
     data = []
+
+    # step = 50
+    # sim_count = 100
+    disjoint = False
+    # for n in range(500, 10000 + step, step):
+    #     data.append([])
+    #     for rep in range(sim_count):
+    n = 600
     k = 16
     d = 128
-    step = 50
-    sim_count = 100
-    disjoint = True
-    for n in range(500, 10000 + step, step):
-        data.append([])
-        for rep in range(sim_count):
-            start = time()
-            r_approx = int(n / math.pow(10, 5) * math.pow(2, 16) * k / d)
-            params = {'n': n, 'd': d, 'k': k, 'r_approx': r_approx, 't': 0.1, 'k_adj': 2.0, 'L': 100, 'F': 0.1, 'H': 50}
-            print(f'n={params["n"]}, d={params["d"]}, k={params["k"]} -> r={r_approx}')
+    start = time()
+    r_approx = int(n / math.pow(10, 5) * math.pow(2, 16) * k / d)
+    params = {'n': n, 'd': d, 'k': k, 'r_approx': r_approx, 't': 0.1, 'k_adj': 2.0, 'L': 100, 'F': 0.1, 'H': 50}
+    print(f'n={params["n"]}, d={params["d"]}, k={params["k"]} -> r={r_approx}')
 
-            #
-            # seed = time()
-            # gtg = GraphToolBackend.create_gnp_graph(params['n'], params['d'] / params['n']) # p = d / n = 512 / 10000 = 0.0512
-            # model = NeuroidalModel(gtg, **params)
-            # m_total = simulate(model, seed,False, False, False, False, False)
-            # capacity = int(m_total / (len(model.S) - model.L))
-            # print(f"r: {params['r_approx']}, capacity: {capacity}")
-            # print_elapsed(start, time())
-            # print(f"Memory usage: {get_memory_usage()} bytes")
-
-            # start = time()
-            # ag = GraphToolBackend.to_adjacency(gtg)
-            g = AdjacencyBackend.create_gnp_graph(params['n'], params['d'] / params['n'])
-            model = NeuroidalModelAdj(g, **params)
-            m_total = simulate(model, time(),False, disjoint, False, False, False)
-            capacity = int(m_total / (len(model.S) - model.L))
-            data[-1].append(capacity)
-            print_elapsed(start, time())
-            print('\tCapacity:', capacity)
-        # print(f"r: {params['r_approx']}, capacity: {capacity}")
-        # print(f"Memory usage: {get_memory_usage()} bytes")
-    df = pd.DataFrame(data, columns=[f"sim_{i}" for i in range(sim_count)])
-    df.to_csv("neuroidal_capacity.csv", index=False)
+    g = AdjacencyBackend.create_gnp_graph(params['n'], params['d'] / params['n'])
+    model = NeuroidalModelAdj(g, **params)
+    m_total = simulate(model, time(),False, disjoint, False, False, False)
+    capacity = int(m_total / (len(model.S) - model.L))
+    print_elapsed(start, time())
+    print('\tCapacity:', capacity)
+    print(f"r: {params['r_approx']}, capacity: {capacity}")
+    print(f"Memory usage: {get_memory_usage()} bytes")
+    # data[-1].append(capacity)
+    # df = pd.DataFrame(data, columns=[f"sim_{i}" for i in range(sim_count)])
+    # df.to_csv("neuroidal_capacity.csv", index=False)
 
 if __name__ == "__main__":
     main()
