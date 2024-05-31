@@ -17,10 +17,10 @@ from src.neuroidal_adj import NeuroidalModel
 from src.simulate import simulate
 
 
-EDGE_PROBABILITIES = xp.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+EDGE_PROBABILITIES = xp.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
 # [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
 
-STATS_COLUMNS = ['P', 'Local', 'Global', 'Path Length', 'Edge Count']
+STATS_COLUMNS = ['P', 'Edge Count', 'Local', 'Global', 'Path Length', 'DLocal', 'DGlobal', 'DPath Length']
 def characterize_graph(g):
     local_mean = Backend.calculate_local_clustering(g)
     global_mean = Backend.calculate_global_clustering(g)
@@ -32,7 +32,7 @@ CAPACITY_COLUMNS = STATS_COLUMNS + ['Computational Time', 'RAM Usage', 'Memory C
 def characterize_capacity(g, disjoint=False):
     start = time()
 
-    n = g.shape[0]
+    n = len(g)
 
     k = 16
     d = 128
@@ -40,17 +40,18 @@ def characterize_capacity(g, disjoint=False):
 
     params = {'n': n, 'd': d, 't': 0.1, 'k': k, 'k_adj': 2.0, 'r_approx': r, 'L': int(n * 0.1), 'F': 0.1, 'H': int(n * 0.1)}
     model = NeuroidalModel(g, **params)
-    m_total = simulate(model, time(), False, disjoint, False, False, False)
-    capacity = int(m_total / (len(model.S) - model.L))
-    duration = time() - start
-    ram_usage = model.memory_usage()
 
-    local_mean = Backend.calculate_local_clustering(g)
-    global_mean = Backend.calculate_global_clustering(g)
-    path_mean = Backend.calculate_path_length(g)
-    edge_count = xp.count_nonzero(g)
+    results = xp.zeros(len(CAPACITY_COLUMNS) - 1)
+    results[9] = simulate(model, time(), False, disjoint, False, False, False)
+    results[8] = model.memory_usage()
+    results[10] = model.F
+    results[7] = time() - start
 
-    return xp.array([local_mean, global_mean, path_mean, edge_count, duration, ram_usage, capacity, model.F])
+    results[0] = xp.count_nonzero(g).item()
+    results[1:4] = Backend.calculate_stats_quick(g)
+    results[4:7] = Backend.calculate_stats_quick(g, True)
+
+    return results
 
 
 def evaluate_gnp(n, columns, callback, count=100):
@@ -115,14 +116,16 @@ def main():
     # n = 100 → 1k, step 100; 1k → 10k, step 1k; 10k → 100k, step 10k
     print()
 
-    test_count = 5
+    test_count = 50
     for n in [
-        100, 200, 300, 400, 500
+        100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
+        2000, 3000, 4000, 5000,
+        6000, 7000, 8000, 9000, 10000
     ]:
         print(f'\nProcessing n={n}')
         evaluate_gnp(n, CAPACITY_COLUMNS, characterize_capacity, count=test_count)
-        evaluate_ba(n, CAPACITY_COLUMNS, characterize_capacity, m_step=50, count=test_count)
-        evaluate_ws(n, CAPACITY_COLUMNS, characterize_capacity, k_step=50, count=test_count)
+        # evaluate_ba(n, CAPACITY_COLUMNS, characterize_capacity, m_step=50, count=test_count)
+        # evaluate_ws(n, CAPACITY_COLUMNS, characterize_capacity, k_step=50, count=test_count)
 
 
 

@@ -1,3 +1,5 @@
+import itertools
+
 try:
     import cupy as xp
 except ImportError:
@@ -8,22 +10,8 @@ print('Imported adjacency Neuroidal Model Backend')
 class Backend:
     @staticmethod
     def create_gnp_graph(n: int, p: float, seed=None) -> xp.ndarray:
-        rng = xp.random.default_rng(seed)
-        data = rng.binomial(1, p, size=(n, n))
+        data = (xp.random.random_sample(size=(n,  n)) < p).astype(float)
         xp.fill_diagonal(data, 0)
-        return data
-
-    @staticmethod
-    def create_gnm_graph(n: int, p: float, seed=None) -> xp.ndarray:
-        rng = xp.random.default_rng(seed)
-        k = rng.binomial(n * (n - 1) // 2, p)
-
-        sources = rng.integers(0, n, k * 2)
-        targets = rng.integers(0, n, k * 2)
-
-        data = xp.zeros(shape=(n, n), dtype=xp.uint8)
-        for source, target in zip(sources, targets):
-            data[source, target] = 1
         return data
 
     @staticmethod
@@ -38,15 +26,16 @@ class Backend:
         if k == n:
             return xp.eye(n, dtype=xp.uint8)
 
-        rng = xp.random.default_rng(seed)
+        xp.random.seed(seed)
         data = xp.zeros(shape=(n, n), dtype=xp.uint8)
-        for n_ix in range(n):
-            for n_iy in range(n_ix + 1, n_ix + k + 1):
-                if rng.uniform() < p:
-                    r_ix = rng.choice(list(set(range(n)) - {n_ix, n_iy % n}))
-                    data[r_ix, n_ix] = 1
-                else:
-                    data[n_iy % n, n_ix] = 1
+
+        pool = xp.random.random_sample(size=n * k)
+        for pix, (n_ix, iy) in enumerate(itertools.product(range(n), range(1, k + 1))):
+            idx = n_iy = (n_ix + iy) % n
+            if pool[pix] < p:
+                while idx == n_ix or idx == n_iy:
+                    idx = int(xp.random.random_sample() * n)
+            data[idx, n_ix] = 1
         return data
 
     @staticmethod
@@ -56,17 +45,14 @@ class Backend:
                 "Barabási–Albert network must have m >= 1 and m < n, m = %d, n = %d" % (
                     m, n))
 
-        rng = xp.random.default_rng(seed)
+        xp.random.seed(seed)
         data = xp.zeros(shape=(n, n), dtype=xp.uint8)
         # Connect node 0 to nodes 1 to m
         data[1:m + 1, 0] = 1
         data[0, 1:m + 1] = 1
         for n_ix in range(m + 1, n):
             p = xp.sum(data[:n_ix, :], axis=1) / xp.sum(data)
-
-            xp.put(data[:, n_ix],
-                   rng.choice(xp.arange(n_ix), size=m, p=p, replace=False,
-                              shuffle=True), 1)
+            xp.put(data[:, n_ix], xp.random.choice(xp.arange(n_ix), size=m, p=p), 1)
             data[n_ix, :] = data[:, n_ix]
         return data
 
@@ -97,8 +83,33 @@ class Backend:
     def calculate_path_length(A, directed=False) -> float:
         if not directed:
             A = xp.maximum(A, A.T)
+
+        A = xp.array(A, dtype=float, copy=True)
+        A[A == 0] = xp.inf
+        xp.fill_diagonal(A, 0)
+
+        for k in range(A.shape[0]):
+            A = xp.minimum(A, A[:, k:k + 1] + A[k:k + 1, :])
+
+        return xp.mean(A[A != 0], axis=0).item()
+
+    @staticmethod
+    def calculate_stats_quick(A, directed=False) -> xp.ndarray:
+        if not directed:
+            A = xp.maximum(A, A.T, dtype=float)
         else:
-            A = xp.array(A, copy=True)
+            A = xp.array(A, dtype=float, copy=True)
+
+        k_i = xp.sum(A, axis=0)
+        k_i *= k_i - 1
+        kd = xp.sum(k_i)
+        k_i[k_i != 0] = 1 / k_i[k_i != 0]
+
+        A3 = A @ A @ A
+
+        r = xp.zeros(3)
+        r[0] = xp.sum(k_i * xp.diag(A3)) / A.shape[0]
+        r[1] = xp.trace(A3) / kd
 
         A[A == 0] = xp.inf
         xp.fill_diagonal(A, 0)
@@ -106,5 +117,5 @@ class Backend:
         for k in range(A.shape[0]):
             A = xp.minimum(A, A[:, k:k + 1] + A[k:k + 1, :])
 
-        return xp.mean(A[A != 0], axis=0)
-
+        r[2] = xp.mean(A[A != 0], axis=0).item()
+        return r

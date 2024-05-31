@@ -1,19 +1,17 @@
-import pathlib
-
 import math
-import cupy as cp
-
-from time import time, strftime
+import pathlib
 import itertools
 
+from time import time, strftime
+
+try:
+    import cupy as xp
+except ImportError:
+    import numpy as xp
 
 from src.utils import get_memory_usage, print_elapsed
-
 from src.neuroidal_adj import NeuroidalModel as NeuroidalModelAdj
-# from src.neuroidal import NeuroidalModel as NeuroidalModel
 from src.backend.adjacency import Backend as AdjacencyBackend
-# from src.backend.graph_tool import Backend as GraphToolBackend
-
 
 def print_join_update(model, S_len, H_if, total_if, m_len, m_total):
     print("Current Total Memories:", S_len)
@@ -55,8 +53,8 @@ def print_memorized_msg(model, S_len, m_total):
 
 
 def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=True,
-             verbose=True, vis = False):
-    cp.random.seed(int(seed))
+             verbose=True, vis = False) -> int:
+    xp.random.seed(int(seed))
 
     if vis:
         vis = model.Visualization(model.g)
@@ -88,11 +86,11 @@ def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=T
 
     # rng = cp.random.default_rng(int(seed))
     permutations = model.L * (model.L - 1) // 2 + model.L
-    model.S = cp.zeros((permutations, model.n), dtype=int)
+    model.S = xp.zeros((permutations, model.n), dtype=int)
 
     for S_i in range(model.L):
-        model.S[S_i] = cp.full(model.n, -1, dtype=int)
-        model.S[S_i, :model.r_approx] = cp.random.choice(cp.arange(0, model.n - 1), size=model.r_approx, replace=False)
+        model.S[S_i] = xp.full(model.n, -1, dtype=int)
+        model.S[S_i, :model.r_approx] = xp.random.choice(xp.arange(0, model.n - 1), size=model.r_approx, replace=False)
 
     S_i = model.L
     init_pairs = itertools.combinations(range(model.L), 2)
@@ -104,29 +102,29 @@ def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=T
         C_if = model.interference_check(A_i, B_i, S_i, C, vis)
 
         m += 1
-        m_len += len(C)
+        C_len = xp.count_nonzero(C + 1)
+        m_len += C_len
 
         model.S[S_i] = C
         S_i += 1
-        m_total += len(C)
+        m_total += C_len
 
         if first_join and vis:
             vis.visualize_start(A, B, C, out_path / f"graph_start.png")
 
         if m % model.H == 0:
             if verbose:
-                model.print_join_update(S_i, H_if,
-                                        total_if, m_len, m_total)
+                model.print_join_update(S_i, H_if, total_if, m_len, m_total)
             H_if = 0
             m_len = 0
             if vis:
                 vis.visualize(
                     out_path /
-                    f"graph_{len(model.S)}_memories.png"
+                    f"graph_{S_i}_memories.png"
                 )
                 vis.visualize_if(
                     out_path /
-                    f"graph_{len(model.S)}_if.png"
+                    f"graph_{S_i}_if.png"
                 )
 
         if C_if > 0:
@@ -138,7 +136,7 @@ def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=T
                 if vis:
                     vis.visualize(out_path / f"graph_final_memories.png")
                     vis.visualize_if(out_path / f"graph_final_if.png")
-                return m_total
+                return (m_total // (S_i - model.L)).item()
 
     if verbose:
         model.print_memorized_msg(S_i, m_total)
@@ -147,7 +145,7 @@ def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=T
         vis.visualize(out_path / f"graph_final_memories.png")
         vis.visualize_if(out_path / f"graph_final_if.png")
 
-    return m_total
+    return (m_total // (S_i - model.L)).item()
 
 
 def main():
@@ -181,8 +179,7 @@ def main():
 
     g = AdjacencyBackend.create_gnp_graph(params['n'], params['d'] / params['n'])
     model = NeuroidalModelAdj(g, **params)
-    m_total = simulate(model, time(),False, disjoint, False, False, False)
-    capacity = int(m_total / (len(model.S) - model.L))
+    capacity = simulate(model, time(),False, disjoint, False, False, False)
     print_elapsed(start, time())
     print('\tCapacity:', capacity)
     print(f"r: {params['r_approx']}, capacity: {capacity}")

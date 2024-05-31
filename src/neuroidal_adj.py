@@ -3,9 +3,7 @@ try:
 except ImportError:
     import numpy as xp
 
-
 print('Imported adjacency Neuroidal Model')
-
 
 class Visualization:
     def __init__(self, g):
@@ -50,7 +48,7 @@ class NeuroidalModel:
         # Make the same shape as adjacency matrix (Each spot is the edge)
         # self.mode_qq = xp.full((n, n), 1, dtype=int)
         self.mode_w = xp.full((n, n), self.t / self.k_m, dtype=float)
-        # 17887200, 19327200
+
         # Blank out the diagonal
         for ix in range(n):
             # self.mode_qq[ix, ix] = 0
@@ -96,31 +94,18 @@ class NeuroidalModel:
 
 
     def JOIN(self, A, B, disjoint=False, two_step=False, fast=True, vis=False):
-        if disjoint:
-            neurons_to_fire = xp.intersect1d(A, B)
-        else:
-            neurons_to_fire = A + B
+        neurons_to_fire = xp.intersect1d(A, B) if disjoint else xp.union1d(A, B)
         self.mode_f[neurons_to_fire] = 1
         C = self.update_graph(two_step, vis)
         self.mode_f.fill(0)
         self.mode_q.fill(1)
         return C
 
-    def quick_JOIN(self, A, B, vis=False):
-        firing_edge_weight = self.t / self.k_m
-
-        self.mode_w.fill(0)
-        self.mode_w[:, A + B] = self.g[:, A + B] * firing_edge_weight
-        in_degrees = self.mode_w.sum(axis=1)
-
-        C = xp.where(in_degrees > self.t)[0]
-
-        return C
-
     def interference_check(self, A_i, B_i, S_len, C, vis):
         interfering_set = xp.zeros(S_len, dtype=bool)
         for S_i in range(S_len):
-            interfering_set[S_i] = len(xp.intersect1d(self.S[S_i], C)) > xp.count_nonzero(self.S[S_i] + 1) / 2
+            intersect_count = xp.count_nonzero(xp.intersect1d(self.S[S_i] + 1, C + 1))
+            interfering_set[S_i] = intersect_count > xp.count_nonzero(self.S[S_i] + 1) // 2
 
         interfering_set[A_i] = False
         interfering_set[B_i] = False
