@@ -1,13 +1,11 @@
 import pathlib
 
 import math
-import numpy as np
+import cupy as cp
 
 from time import time, strftime
 import itertools
 
-import pandas as pd
-from numpy.random import default_rng
 
 from src.utils import get_memory_usage, print_elapsed
 
@@ -58,6 +56,8 @@ def print_memorized_msg(model, S_len, m_total):
 
 def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=True,
              verbose=True, vis = False):
+    cp.random.seed(int(seed))
+
     if vis:
         vis = model.Visualization(model.g)
 
@@ -85,27 +85,29 @@ def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=T
         vis.visualize(out_path / f"graph_{len(model.S)}_memories.png")
         vis.visualize_if(out_path / f"graph_{len(model.S)}_if.png")
 
-    rng = default_rng(int(seed))
-    model.S = [rng.choice(np.arange(0, model.n - 1), size=model.r_approx, replace=False)
-               for _ in range(model.L)]
 
+    # rng = cp.random.default_rng(int(seed))
+    permutations = model.L * (model.L - 1) // 2 + model.L
+    model.S = cp.zeros((permutations, model.n), dtype=int)
+
+    for S_i in range(model.L):
+        model.S[S_i] = cp.full(model.n, -1, dtype=int)
+        model.S[S_i, :model.r_approx] = cp.random.choice(cp.arange(0, model.n - 1), size=model.r_approx, replace=False)
+
+    S_i = model.L
     init_pairs = itertools.combinations(range(model.L), 2)
     for A_i, B_i in init_pairs:
-        A = list(model.S[A_i])
-        B = list(model.S[B_i])
+        A = model.S[A_i]
+        B = model.S[B_i]
 
-        if use_QJOIN:
-            C = model.quick_JOIN(A, B, vis)
-        else:
-            C = model.JOIN(A, B, disjoint, two_step, fast, vis)
-        # print(len(C))
-        C_if = model.interference_check(A_i, B_i, C, vis)
-
-        # print(A, B, C, C_if)
+        C = model.JOIN(A, B, disjoint, two_step, fast, vis)
+        C_if = model.interference_check(A_i, B_i, S_i, C, vis)
 
         m += 1
         m_len += len(C)
-        model.S.append(C)
+
+        model.S[S_i] = C
+        S_i += 1
         m_total += len(C)
 
         if first_join and vis:
@@ -113,7 +115,7 @@ def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=T
 
         if m % model.H == 0:
             if verbose:
-                model.print_join_update(len(model.S), H_if,
+                model.print_join_update(S_i, H_if,
                                         total_if, m_len, m_total)
             H_if = 0
             m_len = 0
@@ -130,16 +132,16 @@ def simulate(model, seed, use_QJOIN=True, disjoint=False, two_step=False, fast=T
         if C_if > 0:
             H_if += C_if
             total_if += C_if
-            if total_if / len(model.S) > model.F:
+            if total_if / S_i > model.F:
                 if verbose:
-                    model.print_halt_msg(len(model.S), total_if, m_total)
+                    model.print_halt_msg(S_i, total_if, m_total)
                 if vis:
                     vis.visualize(out_path / f"graph_final_memories.png")
                     vis.visualize_if(out_path / f"graph_final_if.png")
                 return m_total
 
     if verbose:
-        model.print_memorized_msg(len(model.S), m_total)
+        model.print_memorized_msg(S_i, m_total)
 
     if vis:
         vis.visualize(out_path / f"graph_final_memories.png")
@@ -164,13 +166,14 @@ def main():
 
     # step = 50
     # sim_count = 100
-    disjoint = False
     # for n in range(500, 10000 + step, step):
     #     data.append([])
     #     for rep in range(sim_count):
-    n = 600
+    n = 100
     k = 16
     d = 128
+    disjoint = False
+
     start = time()
     r_approx = int(n / math.pow(10, 5) * math.pow(2, 16) * k / d)
     params = {'n': n, 'd': d, 'k': k, 'r_approx': r_approx, 't': 0.1, 'k_adj': 2.0, 'L': 100, 'F': 0.1, 'H': 50}
@@ -184,6 +187,7 @@ def main():
     print('\tCapacity:', capacity)
     print(f"r: {params['r_approx']}, capacity: {capacity}")
     print(f"Memory usage: {get_memory_usage()} bytes")
+    print(f'Reported memory usage: {model.memory_usage()} bytes')
     # data[-1].append(capacity)
     # df = pd.DataFrame(data, columns=[f"sim_{i}" for i in range(sim_count)])
     # df.to_csv("neuroidal_capacity.csv", index=False)

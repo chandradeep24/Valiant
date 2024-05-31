@@ -1,57 +1,45 @@
-import scipy.sparse as sp
-import numpy as np
-from numpy.random import default_rng
+try:
+    import cupy as xp
+except ImportError:
+    import numpy as xp
 
 print('Imported adjacency Neuroidal Model Backend')
 
-
 class Backend:
     @staticmethod
-    def graph_from_array(data: np.ndarray) -> sp.csr_matrix:
-        adj_matrix = sp.coo_matrix(data, data.shape, dtype=np.int8)
-        adj_matrix.setdiag(0)
-        return adj_matrix.tocsr()
+    def create_gnp_graph(n: int, p: float, seed=None) -> xp.ndarray:
+        rng = xp.random.default_rng(seed)
+        data = rng.binomial(1, p, size=(n, n))
+        xp.fill_diagonal(data, 0)
+        return data
 
     @staticmethod
-    def create_gnm_graph(n: int, p: float, seed=None) -> np.ndarray:
-        rng = default_rng(seed)
+    def create_gnm_graph(n: int, p: float, seed=None) -> xp.ndarray:
+        rng = xp.random.default_rng(seed)
         k = rng.binomial(n * (n - 1) // 2, p)
 
         sources = rng.integers(0, n, k * 2)
         targets = rng.integers(0, n, k * 2)
 
-        data = np.zeros(shape=(n, n), dtype=np.uint8)
+        data = xp.zeros(shape=(n, n), dtype=xp.uint8)
         for source, target in zip(sources, targets):
             data[source, target] = 1
         return data
-        # adj_matrix = sp.coo_matrix(
-        #     (np.ones(shape=sources.shape), (targets, sources)), (n, n),
-        #     dtype=np.int8)
-        # adj_matrix.setdiag(0)
-        # return adj_matrix.tocsr()
-
-    @staticmethod
-    def create_gnp_graph(n: int, p: float, seed=None) -> np.ndarray:
-        rng = default_rng(seed)
-        data = rng.binomial(1, p, size=(n, n))
-        np.fill_diagonal(data, 0)
-        return data
-
 
     @staticmethod
     def create_ws_graph(n: int, p: float, k: int = -1, directed: bool = True,
-                        seed=None) -> np.ndarray:
+                        seed=None) -> xp.ndarray:
         if k == -1:
-            k = int((n + np.log(n)) // 2)
+            k = int((n + xp.log(n)) // 2)
 
         if k > n:
             raise Exception("k cannot be larger than n")
 
         if k == n:
-            return sp.eye(n, dtype=np.uint8)
+            return xp.eye(n, dtype=xp.uint8)
 
-        rng = default_rng(seed)
-        data = np.zeros(shape=(n, n), dtype=np.uint8)
+        rng = xp.random.default_rng(seed)
+        data = xp.zeros(shape=(n, n), dtype=xp.uint8)
         for n_ix in range(n):
             for n_iy in range(n_ix + 1, n_ix + k + 1):
                 if rng.uniform() < p:
@@ -60,68 +48,63 @@ class Backend:
                 else:
                     data[n_iy % n, n_ix] = 1
         return data
-        # adj_matrix = sp.coo_matrix(data, (n, n), dtype=np.uint8)
-        # return adj_matrix.tocsr()
-
 
     @staticmethod
-    def create_ba_graph(n: int, m: int, seed=None) -> np.ndarray:
+    def create_ba_graph(n: int, m: int, seed=None) -> xp.ndarray:
         if m < 1 or m >= n:
             raise Exception(
                 "Barabási–Albert network must have m >= 1 and m < n, m = %d, n = %d" % (
                     m, n))
 
-        rng = default_rng(seed)
-        data = np.zeros(shape=(n, n), dtype=np.uint8)
+        rng = xp.random.default_rng(seed)
+        data = xp.zeros(shape=(n, n), dtype=xp.uint8)
         # Connect node 0 to nodes 1 to m
         data[1:m + 1, 0] = 1
         data[0, 1:m + 1] = 1
         for n_ix in range(m + 1, n):
-            p = np.sum(data[:n_ix, :], axis=1) / np.sum(data)
+            p = xp.sum(data[:n_ix, :], axis=1) / xp.sum(data)
 
-            np.put(data[:, n_ix],
-                   rng.choice(np.arange(n_ix), size=m, p=p, replace=False,
+            xp.put(data[:, n_ix],
+                   rng.choice(xp.arange(n_ix), size=m, p=p, replace=False,
                               shuffle=True), 1)
             data[n_ix, :] = data[:, n_ix]
         return data
-        # adj_matrix = sp.coo_matrix(data, (n, n), dtype=np.uint8)
-        # return adj_matrix.tocsr()
 
     @staticmethod
-    def calculate_local_clustering(A: np.ndarray) -> float:
-        # Returns the Local Clustering Coefficient
-        # As defined upon an undirected graph, no matter the result
-        A = np.maximum(A, A.T)
+    def calculate_local_clustering(A, directed=False) -> float:
+        if not directed:
+            A = xp.maximum(A, A.T)
 
-        k_i = np.sum(A, axis=1)
-        if np.all(k_i == 0) or np.all(k_i == 1):
+        k_i = xp.sum(A, axis=1)
+        if xp.all(k_i == 0) or xp.all(k_i == 1):
             return 0
         k_j = k_i * (k_i - 1)
 
-        B = np.diag(A @ A @ A)
-        return np.sum(np.divide(1, k_j, where=k_j != 0) * B) / A.shape[0]
+        B = xp.diag(A @ A @ A)
+        return xp.sum(xp.divide(1, k_j, where=k_j != 0) * B) / A.shape[0]
 
     @staticmethod
-    def calculate_global_clustering(A: np.ndarray) -> float:
-        # The Global Clustering Coefficient is defined as
-        # Closed Triples / All Triplets
+    def calculate_global_clustering(A, directed=False) -> float:
+        if not directed:
+            A = xp.maximum(A, A.T)
 
-        A = np.maximum(A, A.T)
-        k = np.sum(A @ A) - np.trace(A @ A)
+        k = xp.sum(A @ A) - xp.trace(A @ A)
         if k == 0:
             return 0
-        return np.trace(A @ A @ A) / k
+        return xp.trace(A @ A @ A) / k
 
     @staticmethod
-    def calculate_path_length(A: np.ndarray) -> float:
-        A = np.maximum(A, A.T)
+    def calculate_path_length(A, directed=False) -> float:
+        if not directed:
+            A = xp.maximum(A, A.T)
+        else:
+            A = xp.array(A, copy=True)
 
-        d = np.array(A, dtype=float)
-        d[d == 0] = np.inf
-        np.fill_diagonal(d, 0)
+        A[A == 0] = xp.inf
+        xp.fill_diagonal(A, 0)
 
         for k in range(A.shape[0]):
-            d = np.minimum(d, d[:, k:k + 1] + d[k:k + 1, :])
+            A = xp.minimum(A, A[:, k:k + 1] + A[k:k + 1, :])
 
-        return np.mean(d[d != 0], axis=0)
+        return xp.mean(A[A != 0], axis=0)
 
